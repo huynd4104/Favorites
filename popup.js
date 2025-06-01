@@ -3,6 +3,66 @@ let favorites = [];
 let filteredFavorites = [];
 let autoScrollInterval = null;
 let scrollContainer = null;
+// IndexedDB functions
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("FavoritesDB", 1);
+
+        request.onerror = () => reject("Lỗi mở IndexedDB");
+        request.onsuccess = () => resolve(request.result);
+
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("favorites")) {
+                db.createObjectStore("favorites", { keyPath: "id" });
+            }
+        };
+    });
+}
+
+async function getAllFavorites() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("favorites", "readonly");
+        const store = tx.objectStore("favorites");
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function addFavorite(fav) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("favorites", "readwrite");
+        const store = tx.objectStore("favorites");
+        const request = store.add(fav);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function updateFavorite(fav) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("favorites", "readwrite");
+        const store = tx.objectStore("favorites");
+        const request = store.put(fav);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function deleteFavoriteById(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("favorites", "readwrite");
+        const store = tx.objectStore("favorites");
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
 
 // Lấy thông tin tab hiện tại
 async function getCurrentTab() {
@@ -31,59 +91,65 @@ function showStatus(message, type = 'success') {
 function updateAddButtonState() {
     const addBtn = document.getElementById('addBtn');
     if (!currentTab || !addBtn) return;
-
     const exists = favorites.some(fav => fav.url === currentTab.url);
-    if (exists) {
-        addBtn.textContent = '✓ Đã có trong favorites';
-        addBtn.disabled = true;
-    } else {
-        addBtn.textContent = '⭐ Thêm vào Favorites';
-        addBtn.disabled = false;
-    }
+    addBtn.textContent = exists ? '✓ Đã có trong favorites' : '⭐ Thêm vào Favorites';
+    addBtn.disabled = exists;
 }
 
-// Lưu favorite
 async function saveFavorite(url, title) {
+    if (favorites.some(f => f.url === url)) {
+        showStatus("URL này đã có trong danh sách!", "error");
+        return;
+    }
+
+    const favorite = {
+        id: Date.now().toString(),
+        url,
+        title: title || url,
+        note: '',
+        dateAdded: new Date().toISOString()
+    };
+
     try {
-        // Kiểm tra URL đã tồn tại chưa
-        const exists = favorites.some(fav => fav.url === url);
-        if (exists) {
-            showStatus('URL này đã có trong danh sách!', 'error');
-            return;
-        }
-
-        const favorite = {
-            id: Date.now().toString(),
-            url: url,
-            title: title || url,
-            note: '',
-            dateAdded: new Date().toISOString()
-        };
-
+        await addFavorite(favorite);
         favorites.unshift(favorite);
-        await chrome.storage.local.set({ favorites: favorites });
-
         renderFavorites();
-        showStatus('Đã thêm vào favorites!');
-        updateAddButtonState(); // Cập nhật trạng thái nút ngay sau khi thêm
-
-    } catch (error) {
-        console.error('Error saving favorite:', error);
-        showStatus('Lỗi khi lưu favorite!', 'error');
+        showStatus("Đã thêm vào favorites!");
+        updateAddButtonState();
+    } catch (err) {
+        console.error('Add error:', err);
+        showStatus("Lỗi khi lưu favorite!", "error");
     }
 }
 
-// Xóa favorite
 async function deleteFavorite(id) {
     try {
-        favorites = favorites.filter(fav => fav.id !== id);
-        await chrome.storage.local.set({ favorites: favorites });
+        await deleteFavoriteById(id);
+        favorites = favorites.filter(f => f.id !== id);
         renderFavorites();
-        showStatus('Đã xóa khỏi favorites!');
-        updateAddButtonState(); // Cập nhật trạng thái nút sau khi xóa
-    } catch (error) {
-        console.error('Error deleting favorite:', error);
-        showStatus('Lỗi khi xóa favorite!', 'error');
+        showStatus("Đã xóa khỏi favorites!");
+        updateAddButtonState();
+    } catch (err) {
+        console.error('Delete error:', err);
+        showStatus("Lỗi khi xóa favorite!", "error");
+    }
+}
+
+async function init() {
+    try {
+        currentTab = await getCurrentTab();
+        if (currentTab) {
+            document.getElementById('currentUrl').textContent = currentTab.url;
+            favorites = await getAllFavorites();
+            updateAddButtonState();
+            renderFavorites();
+        } else {
+            document.getElementById('currentUrl').textContent = 'Không thể lấy thông tin trang';
+            document.getElementById('addBtn').disabled = true;
+        }
+    } catch (err) {
+        console.error('Init error:', err);
+        showStatus('Lỗi khởi tạo extension!', 'error');
     }
 }
 
@@ -208,8 +274,17 @@ async function moveItem(fromIndex, toIndex) {
     favorites = newFavorites;
 
     try {
-        // Lưu vào storage
-        await chrome.storage.local.set({ favorites: favorites });
+        // Lưu vào IndexedDB
+        const db = await openDB();
+        const tx = db.transaction("favorites", "readwrite");
+        const store = tx.objectStore("favorites");
+
+        // Ghi lại toàn bộ danh sách theo thứ tự mới
+        for (const fav of favorites) {
+            store.put(fav);
+        }
+
+        await tx.complete;
 
         // Re-render danh sách
         renderFavorites();
@@ -301,29 +376,6 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-// Khởi tạo
-async function init() {
-    try {
-        // Lấy thông tin tab hiện tại
-        currentTab = await getCurrentTab();
-        if (currentTab) {
-            document.getElementById('currentUrl').textContent = currentTab.url;
-
-            // Load danh sách favorites
-            const data = await chrome.storage.local.get(['favorites']);
-            favorites = data.favorites || [];
-            updateAddButtonState(); // Cập nhật trạng thái nút khi khởi tạo
-            renderFavorites();
-        } else {
-            document.getElementById('currentUrl').textContent = 'Không thể lấy thông tin trang';
-            document.getElementById('addBtn').disabled = true;
-        }
-    } catch (error) {
-        console.error('Error initializing:', error);
-        showStatus('Lỗi khởi tạo extension!', 'error');
-    }
 }
 
 // Event listeners
@@ -508,15 +560,19 @@ function hideNoteModal() {
     currentNoteItemId = null;
 }
 
-function saveNote() {
+async function saveNote() {
     const newNote = document.getElementById('noteInput').value;
     const index = favorites.findIndex(f => f.id === currentNoteItemId);
     if (index !== -1) {
         favorites[index].note = newNote;
-        chrome.storage.local.set({ favorites: favorites }, () => {
+        try {
+            await updateFavorite(favorites[index]);
             renderFavorites();
-            showStatus('Đã lưu ghi chú!');
-        });
+            showStatus("Đã lưu ghi chú!");
+        } catch (e) {
+            console.error("Note update error:", e);
+            showStatus("Lỗi khi lưu ghi chú!", "error");
+        }
     }
     hideNoteModal();
 }

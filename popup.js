@@ -24,7 +24,7 @@ function showStatus(message, type = 'success') {
 
     setTimeout(() => {
         statusEl.style.display = 'none';
-    }, 3000);
+    }, 2000);
 }
 
 // Cập nhật trạng thái nút "Thêm vào Favorites"

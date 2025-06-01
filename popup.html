@@ -99,6 +99,14 @@
         .favorites-list {
             max-height: 280px;
             overflow-y: auto;
+            /* Ẩn tất cả scrollbar */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+
+        /* Ẩn scrollbar cho Webkit browsers (Chrome, Safari, Edge) */
+        .favorites-list::-webkit-scrollbar {
+            display: none;
         }
 
         .favorite-item {
@@ -163,7 +171,8 @@
             align-items: center;
         }
 
-        .note-btn, .delete-btn {
+        .note-btn,
+        .delete-btn {
             border: none;
             border-radius: 6px;
             width: 28px;
@@ -196,9 +205,17 @@
         }
 
         @keyframes pulse {
-            0% { box-shadow: 0 2px 4px rgba(127, 205, 205, 0.3); }
-            50% { box-shadow: 0 4px 12px rgba(127, 205, 205, 0.6); }
-            100% { box-shadow: 0 2px 4px rgba(127, 205, 205, 0.3); }
+            0% {
+                box-shadow: 0 2px 4px rgba(127, 205, 205, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 4px 12px rgba(127, 205, 205, 0.6);
+            }
+
+            100% {
+                box-shadow: 0 2px 4px rgba(127, 205, 205, 0.3);
+            }
         }
 
         .delete-btn {
@@ -242,7 +259,8 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .empty-message, .no-results {
+        .empty-message,
+        .no-results {
             text-align: center;
             color: #666;
             font-style: italic;
@@ -272,25 +290,6 @@
             background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             color: #721c24;
             border: 1px solid #f5c6cb;
-        }
-
-        /* Scrollbar styling */
-        .favorites-list::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .favorites-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .favorites-list::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            border-radius: 4px;
-        }
-
-        .favorites-list::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         /* Developer section */
@@ -349,6 +348,7 @@
                 opacity: 0;
                 transform: translateY(-15px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -449,7 +449,8 @@
             visibility: visible;
         }
 
-        .modal-container, .modal {
+        .modal-container,
+        .modal {
             background: white;
             border-radius: 12px;
             padding: 24px;
@@ -465,7 +466,8 @@
             transform: scale(1);
         }
 
-        .modal-header, .modal h3 {
+        .modal-header,
+        .modal h3 {
             font-size: 16px;
             font-weight: 700;
             color: #333;
@@ -518,13 +520,15 @@
             min-width: 80px;
         }
 
-        .modal-btn-cancel, #cancelNoteBtn {
+        .modal-btn-cancel,
+        #cancelNoteBtn {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             color: #666;
             border: 1px solid #e0e0e0;
         }
 
-        .modal-btn-cancel:hover, #cancelNoteBtn:hover {
+        .modal-btn-cancel:hover,
+        #cancelNoteBtn:hover {
             background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
             transform: translateY(-1px);
         }
@@ -568,6 +572,113 @@
                 margin-top: 8px;
             }
         }
+
+        /* Drag and Drop styles */
+        .favorite-item {
+            cursor: move;
+            transition: all 0.3s ease, transform 0.2s ease;
+            user-select: none;
+        }
+
+        .favorite-item.dragging {
+            opacity: 0.6;
+            transform: rotate(5deg) scale(1.05);
+            z-index: 1000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1ecf1 100%);
+            border-color: #4facfe;
+        }
+
+        .favorite-item.drag-over {
+            border-top: 3px solid #4facfe;
+            margin-top: 8px;
+            transform: translateY(3px);
+        }
+
+        .drag-placeholder {
+            height: 4px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 2px;
+            margin: 8px 0;
+            opacity: 0.8;
+            animation: pulse-drag 1s infinite;
+        }
+
+        @keyframes pulse-drag {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* Drag handle icon */
+        .drag-handle {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ccc;
+            cursor: grab;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .favorite-item:hover .drag-handle {
+            opacity: 1;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .favorite-content {
+            margin-left: 24px;
+            position: relative;
+        }
+
+        /* Auto scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            right: 5px;
+            width: 3px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .scroll-indicator.show {
+            opacity: 0.7;
+        }
+
+        .scroll-indicator.scroll-up {
+            top: 5px;
+            height: 20px;
+            animation: scrollUp 0.5s ease-in-out infinite;
+        }
+
+        .scroll-indicator.scroll-down {
+            bottom: 5px;
+            height: 20px;
+            animation: scrollDown 0.5s ease-in-out infinite;
+        }
+
+        @keyframes scrollUp {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        @keyframes scrollDown {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(3px); }
+        }
     </style>
 </head>
 
@@ -600,20 +711,25 @@
             <div class="search-results-info" id="searchInfo" style="display: none;"></div>
         </div>
 
-        <div id="favoritesList" class="favorites-list">
+        <div id="favoritesList" class="favorites-list" style="position: relative;">
+            <div class="scroll-indicator scroll-up" id="scrollUpIndicator"></div>
+            <div class="scroll-indicator scroll-down" id="scrollDownIndicator"></div>
             <div class="empty-message">Chưa có URL nào được lưu</div>
         </div>
     </div>
 
     <div class="section developer-section">
         <div class="developer-info">
-            <img src="avatar.png" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e0e0;">
+            <img src="avatar.png" alt="Avatar"
+                style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e0e0;">
             <div class="developer-text">
                 <div class="developer-label">Developed by</div>
                 <div class="developer-name">양휘 - RinNguyen</div>
             </div>
         </div>
     </div>
+
+    
 
     <script src="popup.js"></script>
 
@@ -632,15 +748,15 @@
     </div>
 
     <div id="noteModal" class="modal-overlay">
-  <div class="modal">
-    <h3>Note</h3>
-    <textarea id="noteInput" rows="4" placeholder="Nhập ghi chú..."></textarea>
-    <div class="modal-actions">
-      <button id="saveNoteBtn">💾 Lưu</button>
-      <button id="cancelNoteBtn">Hủy</button>
+        <div class="modal">
+            <h3>Note</h3>
+            <textarea id="noteInput" rows="4" placeholder="Nhập ghi chú..."></textarea>
+            <div class="modal-actions">
+                <button id="saveNoteBtn">💾 Lưu</button>
+                <button id="cancelNoteBtn">Hủy</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
 </body>
 

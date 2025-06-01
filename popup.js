@@ -1,6 +1,8 @@
 let currentTab = null;
 let favorites = [];
 let filteredFavorites = [];
+let autoScrollInterval = null;
+let scrollContainer = null;
 
 // Lấy thông tin tab hiện tại
 async function getCurrentTab() {
@@ -85,6 +87,140 @@ async function deleteFavorite(id) {
     }
 }
 
+let draggedElement = null;
+let draggedIndex = -1;
+
+// Thêm event listeners cho drag & drop trong renderFavorites()
+function addDragListeners(itemEl, index) {
+    // Drag start
+    itemEl.addEventListener('dragstart', (e) => {
+        draggedElement = itemEl;
+        draggedIndex = index;
+        itemEl.classList.add('dragging');
+
+        // Lấy reference đến scroll container
+        scrollContainer = document.getElementById('favoritesList');
+
+        // Set drag effect
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', itemEl.outerHTML);
+
+        // Prevent link clicks during drag
+        const links = itemEl.querySelectorAll('a');
+        links.forEach(link => link.style.pointerEvents = 'none');
+    });
+
+    // Drag end
+    itemEl.addEventListener('dragend', () => {
+        itemEl.classList.remove('dragging');
+
+        // Stop auto-scroll
+        stopAutoScroll();
+        scrollContainer = null;
+
+        // Restore link clicks
+        const links = itemEl.querySelectorAll('a');
+        links.forEach(link => link.style.pointerEvents = 'auto');
+
+        // Clean up
+        draggedElement = null;
+        draggedIndex = -1;
+
+        // Remove all drag-over classes
+        document.querySelectorAll('.drag-over').forEach(el => {
+            el.classList.remove('drag-over');
+        });
+    });
+
+    // Drag over
+    itemEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (draggedElement && draggedElement !== itemEl) {
+            itemEl.classList.add('drag-over');
+        }
+    });
+
+    // Drag leave
+    itemEl.addEventListener('dragleave', (e) => {
+        // Only remove class if we're leaving the element itself, not a child
+        if (!itemEl.contains(e.relatedTarget)) {
+            itemEl.classList.remove('drag-over');
+        }
+    });
+
+    // Drop
+    itemEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+
+        if (draggedElement && draggedElement !== itemEl) {
+            const targetIndex = index;
+            moveItem(draggedIndex, targetIndex);
+        }
+
+        itemEl.classList.remove('drag-over');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Thêm mouse move listener cho auto-scroll khi drag
+    document.addEventListener('dragover', (e) => {
+        if (draggedElement && scrollContainer) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const scrollThreshold = 30; // pixels from edge
+            const scrollSpeed = 3;
+
+            // Check if mouse is near container edges
+            if (e.clientY < containerRect.top + scrollThreshold && 
+                e.clientY > containerRect.top) {
+                startAutoScroll('up', scrollSpeed);
+            } else if (e.clientY > containerRect.bottom - scrollThreshold && 
+                       e.clientY < containerRect.bottom) {
+                startAutoScroll('down', scrollSpeed);
+            } else {
+                stopAutoScroll();
+            }
+        }
+    });
+
+    document.addEventListener('dragend', () => {
+        stopAutoScroll();
+    });
+});
+
+
+// Di chuyển item trong mảng
+async function moveItem(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+
+    // Tạo bản copy của mảng
+    const newFavorites = [...favorites];
+
+    // Lấy item cần di chuyển
+    const [movedItem] = newFavorites.splice(fromIndex, 1);
+
+    // Chèn vào vị trí mới
+    newFavorites.splice(toIndex, 0, movedItem);
+
+    // Cập nhật mảng chính
+    favorites = newFavorites;
+
+    try {
+        // Lưu vào storage
+        await chrome.storage.local.set({ favorites: favorites });
+
+        // Re-render danh sách
+        renderFavorites();
+
+        showStatus('Đã thay đổi thứ tự!');
+    } catch (error) {
+        console.error('Error saving new order:', error);
+        showStatus('Lỗi khi lưu thứ tự mới!', 'error');
+    }
+}
+
 // Hiển thị danh sách favorites (có thể lọc)
 function renderFavorites(favoritesToRender = null) {
     const listEl = document.getElementById('favoritesList');
@@ -101,36 +237,55 @@ function renderFavorites(favoritesToRender = null) {
 
     listEl.innerHTML = '';
 
-    dataToRender.forEach(fav => {
+    dataToRender.forEach((fav, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'favorite-item';
 
-       itemEl.innerHTML = `
-                    <div class="favorite-content">
-                        <div class="favorite-info">
-                            <a href="${escapeHtml(fav.url)}" class="favorite-link" target="_blank" title="${escapeHtml(fav.url)}">
-                                <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
-                                <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
-                            </a>
-                        </div>
-                        <div class="favorite-actions">
-                            <button class="note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú'}">📝</button>
-                            <button class="delete-btn" title="Xóa">🗑️</button>
-                        </div>
-                    </div>
-                    ${fav.note ? `<div class="favorite-note">${escapeHtml(fav.note)}</div>` : ''}
-                `;
+        // Thêm HTML với drag handle
+        itemEl.innerHTML = `
+            <div class="drag-handle" title="Kéo để thay đổi vị trí">⋮⋮</div>
+            <div class="favorite-content">
+                <div class="favorite-info">
+                    <a href="${escapeHtml(fav.url)}" class="favorite-link" target="_blank" title="${escapeHtml(fav.url)}">
+                        <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
+                        <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
+                    </a>
+                </div>
+                <div class="favorite-actions">
+                    <button class="note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú'}">📝</button>
+                    <button class="delete-btn" title="Xóa">🗑️</button>
+                </div>
+            </div>
+            ${fav.note ? `<div class="favorite-note">${escapeHtml(fav.note)}</div>` : ''}
+        `;
 
+        // Thêm attributes cho drag & drop
+        itemEl.draggable = true;
+        itemEl.dataset.id = fav.id;
+
+        // Chỉ thêm drag listeners khi không đang search
+        if (favoritesToRender === null) {
+            addDragListeners(itemEl, index);
+        } else {
+            // Disable drag khi đang search
+            itemEl.draggable = false;
+            itemEl.style.cursor = 'default';
+            const dragHandle = itemEl.querySelector('.drag-handle');
+            if (dragHandle) {
+                dragHandle.style.display = 'none';
+            }
+        }
+
+        // Event listeners cho note và delete buttons
         const noteBtn = itemEl.querySelector('.note-btn');
-        noteBtn.addEventListener('click', () => {
+        noteBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent drag
             showNoteModal(fav.id, fav.note || '');
         });
 
-
-
-        // Thêm event listener cho nút xóa
         const deleteBtn = itemEl.querySelector('.delete-btn');
-        deleteBtn.addEventListener('click', () => {
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent drag
             showDeleteModal(fav.id, fav.title);
         });
 
@@ -364,4 +519,36 @@ function saveNote() {
         });
     }
     hideNoteModal();
+}
+
+function startAutoScroll(direction, speed = 2) {
+    if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+    }
+    
+    autoScrollInterval = setInterval(() => {
+        if (scrollContainer) {
+            if (direction === 'up') {
+                scrollContainer.scrollTop -= speed;
+                // Hiển thị indicator
+                document.getElementById('scrollUpIndicator').classList.add('show');
+                document.getElementById('scrollDownIndicator').classList.remove('show');
+            } else if (direction === 'down') {
+                scrollContainer.scrollTop += speed;
+                // Hiển thị indicator
+                document.getElementById('scrollDownIndicator').classList.add('show');
+                document.getElementById('scrollUpIndicator').classList.remove('show');
+            }
+        }
+    }, 16); // ~60fps
+}
+
+function stopAutoScroll() {
+    if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+    }
+    // Ẩn indicators
+    document.getElementById('scrollUpIndicator').classList.remove('show');
+    document.getElementById('scrollDownIndicator').classList.remove('show');
 }

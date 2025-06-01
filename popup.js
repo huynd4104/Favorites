@@ -54,6 +54,7 @@ async function saveFavorite(url, title) {
             id: Date.now().toString(),
             url: url,
             title: title || url,
+            note: '',
             dateAdded: new Date().toISOString()
         };
 
@@ -104,13 +105,28 @@ function renderFavorites(favoritesToRender = null) {
         const itemEl = document.createElement('div');
         itemEl.className = 'favorite-item';
 
-        itemEl.innerHTML = `
-            <a href="${escapeHtml(fav.url)}" class="favorite-link" target="_blank" title="${escapeHtml(fav.url)}">
-                <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
-                <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
-            </a>
-            <button class="delete-btn" title="Xóa">✕</button>
-        `;
+       itemEl.innerHTML = `
+                    <div class="favorite-content">
+                        <div class="favorite-info">
+                            <a href="${escapeHtml(fav.url)}" class="favorite-link" target="_blank" title="${escapeHtml(fav.url)}">
+                                <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
+                                <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
+                            </a>
+                        </div>
+                        <div class="favorite-actions">
+                            <button class="note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú'}">📝</button>
+                            <button class="delete-btn" title="Xóa">🗑️</button>
+                        </div>
+                    </div>
+                    ${fav.note ? `<div class="favorite-note">${escapeHtml(fav.note)}</div>` : ''}
+                `;
+
+        const noteBtn = itemEl.querySelector('.note-btn');
+        noteBtn.addEventListener('click', () => {
+            showNoteModal(fav.id, fav.note || '');
+        });
+
+
 
         // Thêm event listener cho nút xóa
         const deleteBtn = itemEl.querySelector('.delete-btn');
@@ -190,7 +206,7 @@ function confirmDelete() {
 
 // Thêm event listeners cho modal
 document.addEventListener('DOMContentLoaded', () => {
-    // Event listeners cho modal
+    // Event listeners cho modal delete
     const cancelBtn = document.getElementById('cancelBtn');
     const confirmBtn = document.getElementById('confirmBtn');
     const modalOverlay = document.getElementById('deleteModal');
@@ -211,6 +227,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Event listeners cho modal note
+    document.getElementById('cancelNoteBtn').addEventListener('click', hideNoteModal);
+    document.getElementById('saveNoteBtn').addEventListener('click', saveNote);
+
+    document.getElementById('noteModal').addEventListener('click', (e) => {
+        if (e.target.id === 'noteModal') {
+            hideNoteModal();
+        }
+    });
+
 });
 
 // Highlight text matching search term
@@ -312,3 +339,29 @@ document.addEventListener('DOMContentLoaded', () => {
         clearSearchBtn.addEventListener('click', clearSearch);
     }
 });
+
+let currentNoteItemId = null;
+
+function showNoteModal(id, note) {
+    currentNoteItemId = id;
+    document.getElementById('noteInput').value = note;
+    document.getElementById('noteModal').classList.add('show');
+}
+
+function hideNoteModal() {
+    document.getElementById('noteModal').classList.remove('show');
+    currentNoteItemId = null;
+}
+
+function saveNote() {
+    const newNote = document.getElementById('noteInput').value;
+    const index = favorites.findIndex(f => f.id === currentNoteItemId);
+    if (index !== -1) {
+        favorites[index].note = newNote;
+        chrome.storage.local.set({ favorites: favorites }, () => {
+            renderFavorites();
+            showStatus('Đã lưu ghi chú!');
+        });
+    }
+    hideNoteModal();
+}

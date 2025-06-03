@@ -6,7 +6,7 @@ let scrollContainer = null;
 // IndexedDB functions
 function openDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open("FavoritesDB", 1);
+        const request = indexedDB.open("FavoritesDB", 2);
 
         request.onerror = () => reject("Lỗi mở IndexedDB");
         request.onsuccess = () => resolve(request.result);
@@ -26,7 +26,12 @@ async function getAllFavorites() {
         const tx = db.transaction("favorites", "readonly");
         const store = tx.objectStore("favorites");
         const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+            const results = request.result;
+            // Sắp xếp theo order
+            results.sort((a, b) => (a.order || 0) - (b.order || 0));
+            resolve(results);
+        };
         request.onerror = () => reject(request.error);
     });
 }
@@ -107,12 +112,19 @@ async function saveFavorite(url, title) {
         url,
         title: title || url,
         note: '',
-        dateAdded: new Date().toISOString()
+        dateAdded: new Date().toISOString(),
+        order: 0 // Đặt order là 0 để thêm vào đầu danh sách
     };
 
     try {
+        // Cập nhật order của các favorite hiện có
+        for (let i = 0; i < favorites.length; i++) {
+            favorites[i].order = i + 1; // Tăng order của các phần tử hiện có
+            await updateFavorite(favorites[i]);
+        }
+
         await addFavorite(favorite);
-        favorites.unshift(favorite);
+        favorites.unshift(favorite); // Thêm vào đầu mảng
         renderFavorites();
         showStatus("Đã thêm vào favorites!");
         updateAddButtonState();
@@ -270,6 +282,11 @@ async function moveItem(fromIndex, toIndex) {
     // Chèn vào vị trí mới
     newFavorites.splice(toIndex, 0, movedItem);
 
+    // Cập nhật order cho tất cả favorites
+    newFavorites.forEach((fav, index) => {
+        fav.order = index;
+    });
+
     // Cập nhật mảng chính
     favorites = newFavorites;
 
@@ -281,10 +298,14 @@ async function moveItem(fromIndex, toIndex) {
 
         // Ghi lại toàn bộ danh sách theo thứ tự mới
         for (const fav of favorites) {
-            store.put(fav);
+            await store.put(fav);
         }
 
-        await tx.complete;
+        // Đợi transaction hoàn tất
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
 
         // Re-render danh sách
         renderFavorites();

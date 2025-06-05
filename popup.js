@@ -132,12 +132,13 @@ async function deleteFavorite(id) {
 
 // UI Rendering
 function showStatus(message, type = 'success') {
+    const statusModal = document.getElementById('statusModal');
     const statusEl = document.getElementById('statusMessage');
     statusEl.textContent = message;
-    statusEl.className = `status-message ${type}`;
-    statusEl.style.display = 'block';
+    statusModal.className = `status-modal ${type}`;
+    statusModal.classList.add('show');
     setTimeout(() => {
-        statusEl.style.display = 'none';
+        statusModal.classList.remove('show');
     }, 2000);
 }
 

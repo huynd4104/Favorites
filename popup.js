@@ -18,7 +18,8 @@ async function openDB() {
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains("favorites")) {
-                db.createObjectStore("favorites", { keyPath: "id" });
+                const store = db.createObjectStore("favorites", { keyPath: "id" });
+                store.createIndex("reminderTime", "reminderTime", { unique: false });
             }
         };
     });
@@ -95,6 +96,8 @@ async function saveFavorite(url, title) {
         title: title || url,
         note: '',
         dateAdded: new Date().toISOString(),
+        reminderTime: null,          // THÊM
+        repeatType: 'none',          // THÊM: 'none', 'daily', 'weekly'
         order: 0
     };
 
@@ -163,7 +166,9 @@ function renderFavorites(favoritesToRender = null) {
     dataToRender.forEach((fav, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'favorite-item';
+        const reminderIcon = fav.reminderTime ? `<span style="position: absolute; top: 4px; left: 4px;">⏰</span>` : '';
         itemEl.innerHTML = `
+            ${reminderIcon}
             <div class="drag-handle" title="Kéo để thay đổi vị trí">⋮⋮</div>
             <div class="favorite-content">
                 <div class="favorite-info">
@@ -318,7 +323,29 @@ function confirmDelete() {
 
 function showNoteModal(id, note) {
     currentNoteItemId = id;
+    const fav = favorites.find(f => f.id === id);
     document.getElementById('noteInput').value = note;
+    document.getElementById('enableReminder').checked = !!fav.reminderTime;
+    const reminderOptions = document.getElementById('reminderOptions');
+if (fav.reminderTime) {
+    reminderOptions.style.display = 'block';
+    reminderOptions.classList.add('show');
+} else {
+    reminderOptions.style.display = 'none';
+    reminderOptions.classList.remove('show');
+}
+    if (fav.reminderTime) {
+        const date = new Date(fav.reminderTime);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        document.getElementById('reminderTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    } else {
+        document.getElementById('reminderTime').value = '';
+    }
+    document.getElementById('repeatType').value = fav.repeatType || 'none';
     document.getElementById('noteModal').classList.add('show');
 }
 
@@ -329,9 +356,14 @@ function hideNoteModal() {
 
 async function saveNote() {
     const newNote = document.getElementById('noteInput').value;
+    const reminderEnabled = document.getElementById('enableReminder').checked;
+    const reminderTime = reminderEnabled ? document.getElementById('reminderTime').value : null;
+    const repeatType = reminderEnabled ? document.getElementById('repeatType').value : 'none';
     const index = favorites.findIndex(f => f.id === currentNoteItemId);
     if (index !== -1) {
         favorites[index].note = newNote;
+        favorites[index].reminderTime = reminderTime;
+        favorites[index].repeatType = repeatType;
         try {
             await updateFavorite(favorites[index]);
             renderFavorites();
@@ -423,12 +455,20 @@ function escapeHtml(unsafe) {
 // Initialization
 async function init() {
     try {
+        const permissionGranted = await chrome.permissions.contains({
+            permissions: ['notifications']
+        });
+        if (!permissionGranted) {
+            showStatus('Vui lòng cấp quyền thông báo để sử dụng nhắc nhở!', 'error');
+        }
         currentTab = await getCurrentTab();
         if (currentTab) {
             document.getElementById('currentUrl').textContent = currentTab.url;
             favorites = await getAllFavorites();
             updateAddButtonState();
             renderFavorites();
+            setInterval(checkReminders, 60 * 1000);
+            checkReminders();
         } else {
             document.getElementById('currentUrl').textContent = 'Không thể lấy thông tin trang';
             document.getElementById('addBtn').disabled = true;
@@ -491,4 +531,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('dragend', stopAutoScroll);
+
+    document.getElementById('enableReminder').addEventListener('change', (e) => {
+    const reminderOptions = document.getElementById('reminderOptions');
+    if (e.target.checked) {
+        reminderOptions.style.display = 'block';
+        setTimeout(() => reminderOptions.classList.add('show'), 10);
+    } else {
+        reminderOptions.classList.remove('show');
+        setTimeout(() => reminderOptions.style.display = 'none', 300);
+    }
 });
+
+});
+
+async function checkReminders() {
+    const now = new Date();
+    for (const fav of favorites) {
+        if (!fav.reminderTime) continue;
+        const reminderTime = new Date(fav.reminderTime);
+        const timeDiff = reminderTime - now;
+        if (timeDiff <= 0 && timeDiff > -60 * 1000) { // Trong vòng 1 phút
+            const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
+            chrome.notifications.create(fav.id, {
+                type: 'basic',
+                iconUrl: 'icon48.png',
+                title: "⏰ Nhắc nhở URL",
+                message: shortTitle,
+                priority: 2
+            });
+            if (fav.repeatType === 'daily') {
+                reminderTime.setDate(reminderTime.getDate() + 1);
+            } else if (fav.repeatType === 'weekly') {
+                reminderTime.setDate(reminderTime.getDate() + 7);
+            } else {
+                fav.reminderTime = null;
+            }
+            fav.reminderTime = reminderTime.toISOString();
+            try {
+                await updateFavorite(fav);
+            } catch (e) {
+                console.error("Error updating reminder:", e);
+            }
+        }
+    }
+}
+

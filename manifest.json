@@ -5,8 +5,12 @@
   "description": "Lưu và quản lý các URL yêu thích",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "notifications"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "URL Favorites"

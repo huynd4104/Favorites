@@ -415,50 +415,6 @@ function showFullscreenPreview(screenshot) {
         return;
     }
 
-    const css = `
-        .fullscreen-preview-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        .fullscreen-preview-image {
-            max-width: 90%;
-            max-height: 90%;
-            border-radius: 10px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-        }
-        .fullscreen-close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 8px rgba(255, 82, 82, 0.3);
-            transition: all 0.3s ease;
-        }
-        .fullscreen-close-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 12px rgba(255, 82, 82, 0.4);
-        }
-    `;
-
     const js = `
         (function() {
             if (document.getElementById('fullscreenPreviewOverlay')) return;
@@ -468,6 +424,51 @@ function showFullscreenPreview(screenshot) {
             const img = document.createElement('img');
             img.className = 'fullscreen-preview-image';
             img.src = '${screenshot}';
+            
+            let scale = 1;
+            const minScale = 0.5;
+            const maxScale = 5;
+            let translateX = 0;
+            let translateY = 0;
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+
+            img.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                scale = Math.max(minScale, Math.min(maxScale, scale + delta));
+                img.style.transform = 'scale(' + scale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
+            });
+
+            img.addEventListener('mousedown', (e) => {
+                if (scale <= 1) return; // Chỉ kéo khi phóng to
+                e.preventDefault();
+                isDragging = true;
+                img.classList.add('dragging');
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = translateX;
+                initialY = translateY;
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                translateX = initialX + dx / scale;
+                translateY = initialY + dy / scale;
+                img.style.transform = 'scale(' + scale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                img.classList.remove('dragging');
+                document.body.style.userSelect = '';
+            });
+
             const closeBtn = document.createElement('button');
             closeBtn.className = 'fullscreen-close-btn';
             closeBtn.innerHTML = '✕';
@@ -475,15 +476,23 @@ function showFullscreenPreview(screenshot) {
             overlay.appendChild(img);
             overlay.appendChild(closeBtn);
             document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
             overlay.onclick = (e) => {
-                if (e.target === overlay) overlay.remove();
+                if (e.target === overlay) {
+                    overlay.remove();
+                    document.body.style.overflow = '';
+                }
+            };
+            closeBtn.onclick = () => {
+                overlay.remove();
+                document.body.style.overflow = '';
             };
         })();
     `;
 
     chrome.scripting.insertCSS({
         target: { tabId: currentTab.id },
-        css: css
+        files: ['fullscreen.css']
     }).then(() => {
         chrome.scripting.executeScript({
             target: { tabId: currentTab.id },
@@ -495,6 +504,51 @@ function showFullscreenPreview(screenshot) {
                 const img = document.createElement('img');
                 img.className = 'fullscreen-preview-image';
                 img.src = screenshot;
+
+                let scale = 1;
+                const minScale = 0.5;
+                const maxScale = 5;
+                let translateX = 0;
+                let translateY = 0;
+                let isDragging = false;
+                let startX, startY, initialX, initialY;
+
+                img.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                    scale = Math.max(minScale, Math.min(maxScale, scale + delta));
+                    img.style.transform = 'scale(' + scale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
+                });
+
+                img.addEventListener('mousedown', (e) => {
+                    if (scale <= 1) return; // Chỉ kéo khi phóng to
+                    e.preventDefault();
+                    isDragging = true;
+                    img.classList.add('dragging');
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initialX = translateX;
+                    initialY = translateY;
+                    document.body.style.userSelect = 'none';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    translateX = initialX + dx / scale;
+                    translateY = initialY + dy / scale;
+                    img.style.transform = 'scale(' + scale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    img.classList.remove('dragging');
+                    document.body.style.userSelect = '';
+                });
+
                 const closeBtn = document.createElement('button');
                 closeBtn.className = 'fullscreen-close-btn';
                 closeBtn.innerHTML = '✕';
@@ -502,8 +556,16 @@ function showFullscreenPreview(screenshot) {
                 overlay.appendChild(img);
                 overlay.appendChild(closeBtn);
                 document.body.appendChild(overlay);
+                document.body.style.overflow = 'hidden';
                 overlay.onclick = (e) => {
-                    if (e.target === overlay) overlay.remove();
+                    if (e.target === overlay) {
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                    }
+                };
+                closeBtn.onclick = () => {
+                    overlay.remove();
+                    document.body.style.overflow = '';
                 };
             },
             args: [screenshot]

@@ -1,28 +1,24 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <script src="popup.js"></script>
+    <title>URL Favorites</title>
 </head>
-
 <body>
-    <div class="section">
+    <div class="section current-page">
         <h4>📋 Trang hiện tại</h4>
-        <div class="current-page">
-            <div id="currentUrl" class="current-url">Đang tải...</div>
-            <button id="addBtn" class="add-btn">⭐ Thêm vào Favorites</button>
-        </div>
+        <div class="current-url" id="currentUrl">Đang tải...</div>
+        <button id="addBtn" class="add-btn">⭐ Thêm vào Favorites</button>
     </div>
 
     <div class="section">
         <h4>💾 Danh sách Favorites</h4>
         <div class="search-container">
             <div class="search-input-wrapper">
-                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm URL hoặc tiêu đề...">
-                <button id="clearSearch" class="clear-search-btn" style="display: none;">✕</button>
+                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm URL...">
+                <button id="clearSearch" class="clear-search-btn" title="Xóa tìm kiếm" style="display: none;">✕</button>
             </div>
             <div id="searchInfo" class="search-results-info" style="display: none;"></div>
         </div>
@@ -39,12 +35,13 @@
         <div id="favoritesList" class="favorites-list">
             <div class="empty-message">Chưa có URL nào được lưu</div>
         </div>
+        <div id="scrollUpIndicator" class="scroll-indicator scroll-up"></div>
+        <div id="scrollDownIndicator" class="scroll-indicator scroll-down"></div>
     </div>
 
     <div class="section developer-section">
         <div class="developer-info">
-            <img src="avatar.png" alt="Avatar"
-                style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e0e0;">
+            <img class="developer-avatar" src="avatar.png" alt="Avatar">
             <div class="developer-text">
                 <div class="developer-label">Developed by</div>
                 <div class="developer-name">양휘 - RinNguyen</div>
@@ -52,12 +49,15 @@
         </div>
     </div>
 
+    <div id="statusModal" class="status-modal">
+        <span id="statusMessage"></span>
+    </div>
+
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">🗑️ Xác nhận xóa</div>
             <div class="modal-content">
-                Bạn có chắc muốn xóa URL này khỏi favorites?
-                <div id="deleteItemTitle" style="font-weight: 600; margin-top: 8px; color: #333;"></div>
+                Bạn có chắc muốn xóa URL <strong id="deleteItemTitle"></strong> khỏi favorites?
             </div>
             <div class="modal-actions">
                 <button id="cancelBtn" class="modal-btn modal-btn-cancel">Hủy</button>
@@ -67,17 +67,15 @@
     </div>
 
     <div id="noteModal" class="modal-overlay">
-        <div class="modal">
+        <div class="modal-container">
             <div class="modal-header">
                 <span class="modal-icon">📝</span>
-                <span>Ghi chú & Nhắc nhở</span>
+                Ghi chú & Nhắc nhở
             </div>
             <div class="modal-body">
                 <div class="input-group">
-                    <label class="input-label">
-                        <span>💭</span> Nội dung ghi chú
-                    </label>
-                    <textarea id="noteInput"></textarea>
+                    <label class="input-label">💭 Nội dung ghi chú</label>
+                    <textarea id="noteInput" rows="4"></textarea>
                 </div>
                 <div class="reminder-section">
                     <div class="reminder-toggle">
@@ -128,25 +126,20 @@
         </div>
     </div>
 
-    <div id="statusModal" class="status-modal">
-        <span id="statusMessage"></span>
-    </div>
-
     <div id="previewModal" class="modal-overlay">
-        <div class="modal preview-modal">
-            <div class="modal-header">
-                <span class="modal-icon">👀</span>
-                <span>Xem trước trang web</span>
-            </div>
-            <div class="modal-body">
-                <img id="previewImage" class="preview-image" src="" alt="Xem trước trang web" style="display: none;">
-                <button id="magnifyBtn" class="magnify-btn" title="Phóng to trên trang web"
-                    style="display: none;">🔍</button>
-                <div id="previewLoading" class="preview-loading">Đang tải xem trước...</div>
-                <div id="previewError" class="preview-error" style="display: none;">Không thể tải xem trước</div>
-            </div>
+        <div class="modal-container preview-modal">
+            <button id="magnifyBtn" class="magnify-btn" style="display: none;">🔍</button>
+            <img id="previewImage" class="preview-image" style="display: none;">
+            <div id="previewLoading" class="preview-loading">🔍 Đang tải xem trước...</div>
+            <div id="previewError" class="preview-error" style="display: none;">Không thể tải xem trước</div>
         </div>
     </div>
-</body>
 
+    <div id="fullscreenPreviewOverlay" class="fullscreen-preview-overlay" style="display: none;">
+        <img id="fullscreenPreviewImage" class="fullscreen-preview-image">
+        <button id="fullscreenCloseBtn" class="fullscreen-close-btn">✕</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
 </html>

@@ -1,0 +1,52 @@
+.fullscreen-preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.fullscreen-preview-image {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    transform-origin: center center;
+    transition: transform 0.2s ease;
+    cursor: grab;
+    user-select: none;
+}
+
+.fullscreen-preview-image.dragging {
+    cursor: grabbing;
+}
+
+.fullscreen-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(255, 82, 82, 0.3);
+    transition: all 0.3s ease;
+}
+
+.fullscreen-close-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(255, 82, 82, 0.4);
+}

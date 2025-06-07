@@ -161,6 +161,18 @@ function updateAddButtonState() {
     addBtn.disabled = exists;
 }
 
+//ánh xạ category sang tiếng việt
+function translateCategory(category) {
+    const categoryMap = {
+        'Uncategorized': 'Chưa phân loại',
+        'Work': 'Công việc',
+        'Study': 'Học tập',
+        'Entertainment': 'Giải trí',
+        'Other': 'Khác'
+    };
+    return categoryMap[category] || category || 'Chưa phân loại';
+}
+
 function renderFavorites(favoritesToRender = null) {
     const listEl = document.getElementById('favoritesList');
     const dataToRender = favoritesToRender || favorites;
@@ -188,7 +200,7 @@ function renderFavorites(favoritesToRender = null) {
                         <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
                         <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
                     </a>
-                    <div class="favorite-category">${escapeHtml(fav.category || 'Uncategorized')}</div>
+                    <div class="favorite-category">${escapeHtml(translateCategory(fav.category))}</div>
                 </div>
                 <div class="favorite-actions">
                     <button class="note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú'}">📝</button>

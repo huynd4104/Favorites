@@ -7,7 +7,7 @@
     <title>URL Favorites</title>
 </head>
 <body>
-    <div class="section current-page">
+    <div class="section">
         <h4>📋 Trang hiện tại</h4>
         <div class="current-url" id="currentUrl">Đang tải...</div>
         <button id="addBtn" class="add-btn">⭐ Thêm vào Favorites</button>
@@ -17,7 +17,7 @@
         <h4>💾 Danh sách Favorites</h4>
         <div class="search-container">
             <div class="search-input-wrapper">
-                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm URL...">
+                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm Tiêu đề hoặc URL...">
                 <button id="clearSearch" class="clear-search-btn" title="Xóa tìm kiếm" style="display: none;">✕</button>
             </div>
             <div id="searchInfo" class="search-results-info" style="display: none;"></div>
@@ -75,7 +75,7 @@
             <div class="modal-body">
                 <div class="input-group">
                     <label class="input-label">💭 Nội dung ghi chú</label>
-                    <textarea id="noteInput" rows="4"></textarea>
+                    <textarea id="noteInput" rows="4" placeholder="Nhập ghi chú của bạn..."></textarea>
                 </div>
                 <div class="reminder-section">
                     <div class="reminder-toggle">

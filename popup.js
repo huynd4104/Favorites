@@ -355,6 +355,7 @@ function showNoteModal(id, note) {
     currentNoteItemId = id;
     const fav = favorites.find(f => f.id === id);
     document.getElementById('noteInput').value = note;
+    document.getElementById('titleInput').value = fav.title || '';
     document.getElementById('enableReminder').checked = !!fav.reminderTime;
     const reminderOptions = document.getElementById('reminderOptions');
     if (fav.reminderTime) {
@@ -595,6 +596,7 @@ function showFullscreenPreview(screenshot) {
 
 async function saveNote() {
     const newNote = document.getElementById('noteInput').value;
+    const newTitle = document.getElementById('titleInput').value.trim() || fav.title;
     const reminderEnabled = document.getElementById('enableReminder').checked;
     const reminderTime = reminderEnabled ? document.getElementById('reminderTime').value : null;
     const repeatType = reminderEnabled ? document.getElementById('repeatType').value : 'none';
@@ -602,6 +604,7 @@ async function saveNote() {
     const index = favorites.findIndex(f => f.id === currentNoteItemId);
     if (index !== -1) {
         favorites[index].note = newNote;
+        favorites[index].title = newTitle;
         favorites[index].reminderTime = reminderTime;
         favorites[index].repeatType = repeatType;
         favorites[index].category = category;

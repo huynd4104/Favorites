@@ -1208,6 +1208,7 @@ input:checked+.slider:before {
 
 .category-item input:focus {
     border-bottom: 1px solid #667eea;
+    margin-right: 8px;
 }
 
 .category-item button {
@@ -1226,7 +1227,7 @@ input:checked+.slider:before {
 .category-item .rename-btn {
     background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
     color: #2d5016;
-    margin-right: 6px;
+    margin-right: 8px;
 }
 
 .category-item .rename-btn:hover {
@@ -1237,6 +1238,7 @@ input:checked+.slider:before {
 .category-item .delete-category-btn {
     background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
     color: #d63384;
+    margin-right: -6px;
 }
 
 .category-item .delete-category-btn:hover {

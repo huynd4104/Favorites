@@ -24,7 +24,7 @@
             <div class="modal-header">🗂️ Quản lý danh mục</div>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <input type="text" id="newCategoryInput" placeholder="Nhập danh mục mới" class="select-input" />
-                <button id="addCategoryBtn" class="modal-btn btn-save">➕ Thêm</button>
+                <button id="addCategoryBtn" class="modal-btn btn-save">👌 Thêm</button>
             </div>
             <div class="modal-body">
                 <div id="customCategoriesList" style="max-height: 200px; overflow-y: auto;"></div>
@@ -92,6 +92,28 @@
             <div class="modal-actions">
                 <button id="cancelBtn" class="modal-btn modal-btn-cancel">Hủy</button>
                 <button id="confirmBtn" class="modal-btn modal-btn-delete">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteCategoryModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-icon">🗑️</span>
+                <h3>Xác nhận xóa danh mục</h3>
+            </div>
+            <div class="modal-content">
+                Bạn có chắc muốn xóa danh mục <span id="deleteCategoryName"
+                    style="font-weight: 600; color: #333;"></span>?
+                Tất cả URL trong danh mục này sẽ được chuyển về "Chưa phân loại".
+            </div>
+            <div class="modal-actions">
+                <button id="cancelDeleteCategoryBtn" class="modal-btn btn-cancel">
+                    <span class="btn-icon">❌</span> Hủy
+                </button>
+                <button id="confirmDeleteCategoryBtn" class="modal-btn modal-btn-delete">
+                    <span class="btn-icon">🗑️</span> Xóa
+                </button>
             </div>
         </div>
     </div>

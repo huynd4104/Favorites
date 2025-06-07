@@ -1,3 +1,17 @@
+"use strict";
+//biến toàn cục
+let favorites = [];
+let currentTab = null;
+let draggedElement = null;
+let draggedIndex = -1;
+let scrollContainer = null;
+let autoScrollInterval = null;
+let deleteItemId = null;
+let currentNoteItemId = null;
+let filteredFavorites = [];
+let customCategories = [];
+let deleteCategoryIndex = null;
+
 async function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open("FavoritesDB", 3);
@@ -744,6 +758,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         hidePreviewModal();
     });
+
+    document.getElementById('cancelDeleteCategoryBtn').addEventListener('click', hideDeleteCategoryModal);
+    document.getElementById('confirmDeleteCategoryBtn').addEventListener('click', confirmDeleteCategory);
+    document.getElementById('deleteCategoryModal').addEventListener('click', (e) => {
+        if (e.target.id === 'deleteCategoryModal') hideDeleteCategoryModal();
+    });
 });
 
 function updateCategoryOptions() {
@@ -782,12 +802,12 @@ function renderCategoriesList() {
     }
     noCategoriesMessage.style.display = 'none';
     listEl.innerHTML = customCategories.map((cat, index) => `
-          <div class="category-item">
-              <input type="text" value="${escapeHtml(cat)}" data-index="${index}" class="category-name-input" />
-              <button class="rename-btn" title="Đổi tên" data-index="${index}">✏️</button>
-              <button class="delete-category-btn" title="Xóa" data-index="${index}">🗑️</button>
-          </div>
-      `).join('');
+        <div class="category-item">
+            <input type="text" value="${escapeHtml(cat)}" data-index="${index}" class="category-name-input" />
+            <button class="rename-btn" title="Đổi tên" data-index="${index}">✏️</button>
+            <button class="delete-category-btn" title="Xóa" data-index="${index}">🗑️</button>
+        </div>
+    `).join('');
     document.querySelectorAll('.rename-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const index = parseInt(e.target.dataset.index);
@@ -798,7 +818,7 @@ function renderCategoriesList() {
     document.querySelectorAll('.delete-category-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const index = parseInt(e.target.dataset.index);
-            deleteCategory(index);
+            showDeleteCategoryModal(index, customCategories[index]);
         });
     });
 }
@@ -866,6 +886,24 @@ async function deleteCategory(index) {
     } catch (err) {
         console.error('Delete category error:', err);
         showStatus('Lỗi khi xóa danh mục!', 'error');
+    }
+}
+
+function showDeleteCategoryModal(index, category) {
+    deleteCategoryIndex = index;
+    document.getElementById('deleteCategoryName').textContent = category;
+    document.getElementById('deleteCategoryModal').classList.add('show');
+}
+
+function hideDeleteCategoryModal() {
+    document.getElementById('deleteCategoryModal').classList.remove('show');
+    deleteCategoryIndex = null;
+}
+
+function confirmDeleteCategory() {
+    if (deleteCategoryIndex !== null) {
+        deleteCategory(deleteCategoryIndex);
+        hideDeleteCategoryModal();
     }
 }
 

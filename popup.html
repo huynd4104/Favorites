@@ -3,44 +3,40 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>URL Favorites</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <script src="popup.js"></script>
 </head>
 
 <body>
-    <!-- <div class="section">
-        <div class="header">
-            <h4>🌟 URL Favorites Manager</h4>
-        </div>
-    </div> -->
-
-    <div id="statusModal" class="status-modal">
-        <span id="statusMessage"></span>
-    </div>
-
     <div class="section">
         <h4>📋 Trang hiện tại</h4>
         <div class="current-page">
-            <div class="current-url" id="currentUrl">Đang tải...</div>
+            <div id="currentUrl" class="current-url">Đang tải...</div>
             <button id="addBtn" class="add-btn">⭐ Thêm vào Favorites</button>
         </div>
     </div>
 
     <div class="section">
         <h4>💾 Danh sách Favorites</h4>
-
-        <!-- Search Bar -->
         <div class="search-container">
             <div class="search-input-wrapper">
-                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Tìm kiếm theo tên hoặc URL...">
+                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm URL hoặc tiêu đề...">
                 <button id="clearSearch" class="clear-search-btn" style="display: none;">✕</button>
             </div>
-            <div class="search-results-info" id="searchInfo" style="display: none;"></div>
+            <div id="searchInfo" class="search-results-info" style="display: none;"></div>
         </div>
-
-        <div id="favoritesList" class="favorites-list" style="position: relative;">
-            <div class="scroll-indicator scroll-up" id="scrollUpIndicator"></div>
-            <div class="scroll-indicator scroll-down" id="scrollDownIndicator"></div>
+        <div class="category-filter">
+            <select id="categoryFilter" class="select-input">
+                <option value="all">Tất cả danh mục</option>
+                <option value="Uncategorized">Chưa phân loại</option>
+                <option value="Work">Công việc</option>
+                <option value="Study">Học tập</option>
+                <option value="Entertainment">Giải trí</option>
+                <option value="Other">Khác</option>
+            </select>
+        </div>
+        <div id="favoritesList" class="favorites-list">
             <div class="empty-message">Chưa có URL nào được lưu</div>
         </div>
     </div>
@@ -60,8 +56,8 @@
         <div class="modal-container">
             <div class="modal-header">🗑️ Xác nhận xóa</div>
             <div class="modal-content">
-                Bạn có chắc muốn xóa URL này khỏi favorites?<br>
-                <strong id="deleteItemTitle"></strong>
+                Bạn có chắc muốn xóa URL này khỏi favorites?
+                <div id="deleteItemTitle" style="font-weight: 600; margin-top: 8px; color: #333;"></div>
             </div>
             <div class="modal-actions">
                 <button id="cancelBtn" class="modal-btn modal-btn-cancel">Hủy</button>
@@ -74,15 +70,15 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-icon">📝</span>
-                <h3>Ghi chú & Nhắc nhở</h3>
+                <span>Ghi chú & Nhắc nhở</span>
             </div>
-
             <div class="modal-body">
                 <div class="input-group">
-                    <label class="input-label">💭 Nội dung ghi chú</label>
-                    <textarea id="noteInput" rows="3" placeholder="Nhập ghi chú của bạn..."></textarea>
+                    <label class="input-label">
+                        <span>💭</span> Nội dung ghi chú
+                    </label>
+                    <textarea id="noteInput"></textarea>
                 </div>
-
                 <div class="reminder-section">
                     <div class="reminder-toggle">
                         <label class="toggle-switch">
@@ -93,14 +89,12 @@
                             <span class="toggle-title">⏰ Đặt lịch nhắc nhở</span>
                         </div>
                     </div>
-
                     <div id="reminderOptions" class="reminder-options">
                         <div class="reminder-inputs">
                             <div class="input-group">
                                 <label class="input-label">🗓️ Thời gian nhắc nhở</label>
-                                <input type="datetime-local" id="reminderTime" class="datetime-input" />
+                                <input type="datetime-local" id="reminderTime" class="datetime-input">
                             </div>
-
                             <div class="input-group">
                                 <label class="input-label">🔄 Tần suất lặp lại</label>
                                 <select id="repeatType" class="select-input">
@@ -112,21 +106,47 @@
                         </div>
                     </div>
                 </div>
+                <div class="input-group">
+                    <label class="input-label">📌 Danh mục</label>
+                    <select id="categoryInput" class="select-input">
+                        <option value="Uncategorized">Chưa phân loại</option>
+                        <option value="Work">Công việc</option>
+                        <option value="Study">Học tập</option>
+                        <option value="Entertainment">Giải trí</option>
+                        <option value="Other">Khác</option>
+                    </select>
+                </div>
             </div>
-
             <div class="modal-actions">
                 <button id="cancelNoteBtn" class="modal-btn btn-cancel">
-                    <span class="btn-icon">❌</span>
-                    <span>Hủy</span>
+                    <span class="btn-icon">❌</span> Hủy
                 </button>
                 <button id="saveNoteBtn" class="modal-btn btn-save">
-                    <span class="btn-icon">💾</span>
-                    <span>Lưu ghi chú</span>
+                    <span class="btn-icon">💾</span> Lưu ghi chú
                 </button>
             </div>
         </div>
     </div>
-    <script src="popup.js"></script>
+
+    <div id="statusModal" class="status-modal">
+        <span id="statusMessage"></span>
+    </div>
+
+    <div id="previewModal" class="modal-overlay">
+        <div class="modal preview-modal">
+            <div class="modal-header">
+                <span class="modal-icon">👀</span>
+                <span>Xem trước trang web</span>
+            </div>
+            <div class="modal-body">
+                <img id="previewImage" class="preview-image" src="" alt="Xem trước trang web" style="display: none;">
+                <button id="magnifyBtn" class="magnify-btn" title="Phóng to trên trang web"
+                    style="display: none;">🔍</button>
+                <div id="previewLoading" class="preview-loading">Đang tải xem trước...</div>
+                <div id="previewError" class="preview-error" style="display: none;">Không thể tải xem trước</div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

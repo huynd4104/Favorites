@@ -12,7 +12,7 @@ let deleteItemId = null;
 // IndexedDB Operations
 async function openDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open("FavoritesDB", 2);
+        const request = indexedDB.open("FavoritesDB", 3);
         request.onerror = () => reject("Lỗi mở IndexedDB");
         request.onsuccess = () => resolve(request.result);
         request.onupgradeneeded = (e) => {
@@ -20,6 +20,7 @@ async function openDB() {
             if (!db.objectStoreNames.contains("favorites")) {
                 const store = db.createObjectStore("favorites", { keyPath: "id" });
                 store.createIndex("reminderTime", "reminderTime", { unique: false });
+                store.createIndex("category", "category", { unique: false });
             }
         };
     });
@@ -90,15 +91,25 @@ async function saveFavorite(url, title) {
         return;
     }
 
+    let screenshot = null;
+    try {
+        screenshot = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+    } catch (err) {
+        console.error('Error capturing screenshot:', err);
+        showStatus("Không thể chụp ảnh màn hình!", "error");
+    }
+
     const favorite = {
         id: Date.now().toString(),
         url,
         title: title || url,
         note: '',
         dateAdded: new Date().toISOString(),
-        reminderTime: null,          // THÊM
-        repeatType: 'none',          // THÊM: 'none', 'daily', 'weekly'
-        order: 0
+        reminderTime: null,
+        repeatType: 'none',
+        order: 0,
+        category: 'Uncategorized',
+        screenshot: screenshot
     };
 
     try {
@@ -177,10 +188,12 @@ function renderFavorites(favoritesToRender = null) {
                         <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
                         <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
                     </a>
+                    <div class="favorite-category">${escapeHtml(fav.category || 'Uncategorized')}</div>
                 </div>
                 <div class="favorite-actions">
                     <button class="note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú'}">📝</button>
                     <button class="delete-btn" title="Xóa">🗑️</button>
+                    <button class="preview-btn" title="Xem trước trang">👀</button>
                 </div>
             </div>
             ${fav.note ? `<div class="favorite-note">${escapeHtml(fav.note)}</div>` : ''}
@@ -201,6 +214,10 @@ function renderFavorites(favoritesToRender = null) {
         itemEl.querySelector('.delete-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             showDeleteModal(fav.id, fav.title);
+        });
+        itemEl.querySelector('.preview-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPreviewModal(fav.id, fav.screenshot);
         });
         listEl.appendChild(itemEl);
     });
@@ -328,13 +345,13 @@ function showNoteModal(id, note) {
     document.getElementById('noteInput').value = note;
     document.getElementById('enableReminder').checked = !!fav.reminderTime;
     const reminderOptions = document.getElementById('reminderOptions');
-if (fav.reminderTime) {
-    reminderOptions.style.display = 'block';
-    reminderOptions.classList.add('show');
-} else {
-    reminderOptions.style.display = 'none';
-    reminderOptions.classList.remove('show');
-}
+    if (fav.reminderTime) {
+        reminderOptions.style.display = 'block';
+        reminderOptions.classList.add('show');
+    } else {
+        reminderOptions.style.display = 'none';
+        reminderOptions.classList.remove('show');
+    }
     if (fav.reminderTime) {
         const date = new Date(fav.reminderTime);
         const year = date.getFullYear();
@@ -347,6 +364,7 @@ if (fav.reminderTime) {
         document.getElementById('reminderTime').value = '';
     }
     document.getElementById('repeatType').value = fav.repeatType || 'none';
+    document.getElementById('categoryInput').value = fav.category || 'Uncategorized';
     document.getElementById('noteModal').classList.add('show');
 }
 
@@ -355,16 +373,164 @@ function hideNoteModal() {
     currentNoteItemId = null;
 }
 
+function showPreviewModal(id, screenshot) {
+    const previewModal = document.getElementById('previewModal');
+    const previewImage = document.getElementById('previewImage');
+    const previewLoading = document.getElementById('previewLoading');
+    const previewError = document.getElementById('previewError');
+    const magnifyBtn = document.getElementById('magnifyBtn');
+
+    previewImage.style.display = 'none';
+    previewLoading.style.display = 'block';
+    previewError.style.display = 'none';
+    magnifyBtn.style.display = 'none';
+
+    previewModal.classList.add('show');
+
+    if (screenshot) {
+        previewImage.src = screenshot;
+        previewImage.onload = () => {
+            previewLoading.style.display = 'none';
+            previewImage.style.display = 'block';
+            magnifyBtn.style.display = 'block';
+        };
+        previewImage.onerror = () => {
+            previewLoading.style.display = 'none';
+            previewError.style.display = 'block';
+        };
+    } else {
+        previewLoading.style.display = 'none';
+        previewError.style.display = 'block';
+    }
+}
+
+function hidePreviewModal() {
+    const previewModal = document.getElementById('previewModal');
+    previewModal.classList.remove('show');
+}
+
+function showFullscreenPreview(screenshot) {
+    if (!currentTab || !screenshot) {
+        showStatus("Không thể hiển thị xem trước toàn màn hình!", "error");
+        return;
+    }
+
+    const css = `
+        .fullscreen-preview-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .fullscreen-preview-image {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        .fullscreen-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(255, 82, 82, 0.3);
+            transition: all 0.3s ease;
+        }
+        .fullscreen-close-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(255, 82, 82, 0.4);
+        }
+    `;
+
+    const js = `
+        (function() {
+            if (document.getElementById('fullscreenPreviewOverlay')) return;
+            const overlay = document.createElement('div');
+            overlay.id = 'fullscreenPreviewOverlay';
+            overlay.className = 'fullscreen-preview-overlay';
+            const img = document.createElement('img');
+            img.className = 'fullscreen-preview-image';
+            img.src = '${screenshot}';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'fullscreen-close-btn';
+            closeBtn.innerHTML = '✕';
+            closeBtn.onclick = () => overlay.remove();
+            overlay.appendChild(img);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+            overlay.onclick = (e) => {
+                if (e.target === overlay) overlay.remove();
+            };
+        })();
+    `;
+
+    chrome.scripting.insertCSS({
+        target: { tabId: currentTab.id },
+        css: css
+    }).then(() => {
+        chrome.scripting.executeScript({
+            target: { tabId: currentTab.id },
+            func: (screenshot) => {
+                if (document.getElementById('fullscreenPreviewOverlay')) return;
+                const overlay = document.createElement('div');
+                overlay.id = 'fullscreenPreviewOverlay';
+                overlay.className = 'fullscreen-preview-overlay';
+                const img = document.createElement('img');
+                img.className = 'fullscreen-preview-image';
+                img.src = screenshot;
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'fullscreen-close-btn';
+                closeBtn.innerHTML = '✕';
+                closeBtn.onclick = () => overlay.remove();
+                overlay.appendChild(img);
+                overlay.appendChild(closeBtn);
+                document.body.appendChild(overlay);
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) overlay.remove();
+                };
+            },
+            args: [screenshot]
+        }).then(() => {
+            showStatus("Đã hiển thị xem trước trên trang web!");
+        }).catch((error) => {
+            console.error('Error injecting preview:', error);
+            showStatus("Lỗi khi hiển thị xem trước toàn màn hình!", "error");
+        });
+    }).catch((error) => {
+        console.error('Error injecting CSS:', error);
+        showStatus("Lỗi khi hiển thị xem trước toàn màn hình!", "error");
+    });
+}
+
 async function saveNote() {
     const newNote = document.getElementById('noteInput').value;
     const reminderEnabled = document.getElementById('enableReminder').checked;
     const reminderTime = reminderEnabled ? document.getElementById('reminderTime').value : null;
     const repeatType = reminderEnabled ? document.getElementById('repeatType').value : 'none';
+    const category = document.getElementById('categoryInput').value;
     const index = favorites.findIndex(f => f.id === currentNoteItemId);
     if (index !== -1) {
         favorites[index].note = newNote;
         favorites[index].reminderTime = reminderTime;
         favorites[index].repeatType = repeatType;
+        favorites[index].category = category;
         try {
             await updateFavorite(favorites[index]);
             renderFavorites();
@@ -386,7 +552,8 @@ function highlightText(text, searchTerm) {
 }
 
 function filterFavorites(searchTerm) {
-    if (!searchTerm.trim()) {
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    if (!searchTerm.trim() && categoryFilter === 'all') {
         filteredFavorites = [];
         updateSearchInfo('');
         renderFavorites();
@@ -396,7 +563,9 @@ function filterFavorites(searchTerm) {
     filteredFavorites = favorites.filter(fav => {
         const titleMatch = fav.title.toLowerCase().includes(term);
         const urlMatch = fav.url.toLowerCase().includes(term);
-        return titleMatch || urlMatch;
+        const searchMatch = term ? (titleMatch || urlMatch) : true;
+        const categoryMatch = categoryFilter === 'all' || fav.category === categoryFilter;
+        return searchMatch && categoryMatch;
     }).map(fav => ({
         ...fav,
         highlightedTitle: highlightText(fav.title, searchTerm),
@@ -470,6 +639,9 @@ async function init() {
             renderFavorites();
             setInterval(checkReminders, 60 * 1000);
             checkReminders();
+            document.getElementById('categoryFilter').addEventListener('change', () => {
+                filterFavorites(document.getElementById('searchInput').value);
+            });
         } else {
             document.getElementById('currentUrl').textContent = 'Không thể lấy thông tin trang';
             document.getElementById('addBtn').disabled = true;
@@ -534,16 +706,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('dragend', stopAutoScroll);
 
     document.getElementById('enableReminder').addEventListener('change', (e) => {
-    const reminderOptions = document.getElementById('reminderOptions');
-    if (e.target.checked) {
-        reminderOptions.style.display = 'block';
-        setTimeout(() => reminderOptions.classList.add('show'), 10);
-    } else {
-        reminderOptions.classList.remove('show');
-        setTimeout(() => reminderOptions.style.display = 'none', 300);
-    }
-});
+        const reminderOptions = document.getElementById('reminderOptions');
+        if (e.target.checked) {
+            reminderOptions.style.display = 'block';
+            setTimeout(() => reminderOptions.classList.add('show'), 10);
+        } else {
+            reminderOptions.classList.remove('show');
+            setTimeout(() => reminderOptions.style.display = 'none', 300);
+        }
+    });
 
+    document.getElementById('previewModal').addEventListener('click', (e) => {
+        if (e.target.id === 'previewModal') hidePreviewModal();
+    });
+
+    document.getElementById('magnifyBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const previewModal = document.getElementById('previewModal');
+        const previewImage = document.getElementById('previewImage');
+        if (previewModal.classList.contains('show') && previewImage.src) {
+            showFullscreenPreview(previewImage.src);
+        } else {
+            showStatus("Không có ảnh để phóng to!", "error");
+        }
+        hidePreviewModal();
+    });
 });
 
 async function checkReminders() {
@@ -577,4 +764,3 @@ async function checkReminders() {
         }
     }
 }
-

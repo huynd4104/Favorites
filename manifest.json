@@ -6,7 +6,10 @@
   "permissions": [
     "activeTab",
     "storage",
-    "notifications"
+    "notifications",
+    "tabs",
+    "tabCapture",
+    "scripting"
   ],
   "background": {
     "service_worker": "background.js"

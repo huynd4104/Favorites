@@ -16,6 +16,26 @@
         <input type="file" id="importFile" accept=".json">
     </div>
 
+    <button id="manageCategoriesBtn" class="modal-btn btn-save" style="width: 100%; margin-bottom: 12px;">🗂️ Quản lý
+        danh mục</button>
+
+    <div id="manageCategoriesModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🗂️ Quản lý danh mục</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <input type="text" id="newCategoryInput" placeholder="Nhập danh mục mới" class="select-input" />
+                <button id="addCategoryBtn" class="modal-btn btn-save">➕ Thêm</button>
+            </div>
+            <div class="modal-body">
+                <div id="customCategoriesList" style="max-height: 200px; overflow-y: auto;"></div>
+                <div class="no-results" id="noCategoriesMessage" style="display: none;">Chưa có danh mục tùy chỉnh</div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeManageCategoriesBtn" class="modal-btn btn-cancel">❌ Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <div class="section">
         <h4>📋 Trang hiện tại</h4>
         <div class="current-url" id="currentUrl">Đang tải...</div>
@@ -34,6 +54,7 @@
         <div class="category-filter">
             <select id="categoryFilter" class="select-input">
                 <option value="all">Tất cả danh mục</option>
+                <optgroup id="customCategories" label="Danh mục tùy chỉnh"></optgroup>
                 <option value="Uncategorized">Chưa phân loại</option>
                 <option value="Work">Công việc</option>
                 <option value="Study">Học tập</option>

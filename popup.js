@@ -8,6 +8,7 @@ let draggedElement = null;
 let draggedIndex = -1;
 let currentNoteItemId = null;
 let deleteItemId = null;
+let customCategories = [];
 
 // IndexedDB Operations
 async function openDB() {
@@ -378,6 +379,7 @@ function showNoteModal(id, note) {
     }
     document.getElementById('repeatType').value = fav.repeatType || 'none';
     document.getElementById('categoryInput').value = fav.category || 'Uncategorized';
+    updateCategoryOptions();
     document.getElementById('noteModal').classList.add('show');
 }
 
@@ -708,6 +710,8 @@ async function init() {
         if (!permissionGranted) {
             showStatus('Vui lòng cấp quyền thông báo để sử dụng nhắc nhở!', 'error');
         }
+        customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+        updateCategoryOptions();
         currentTab = await getCurrentTab();
         if (currentTab) {
             document.getElementById('currentUrl').textContent = currentTab.url;
@@ -721,6 +725,25 @@ async function init() {
             checkReminders();
             document.getElementById('categoryFilter').addEventListener('change', () => {
                 filterFavorites(document.getElementById('searchInput').value);
+            });
+            document.getElementById('addCategoryBtn').addEventListener('click', () => {
+                const newCategoryInput = document.getElementById('newCategoryInput');
+                const newCategory = newCategoryInput.value.trim();
+                if (!newCategory || customCategories.includes(newCategory) || ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'].includes(newCategory)) {
+                    showStatus('Danh mục không hợp lệ hoặc đã tồn tại!', 'error');
+                    return;
+                }
+                customCategories.push(newCategory);
+                localStorage.setItem('customCategories', JSON.stringify(customCategories));
+                updateCategoryOptions();
+                renderCategoriesList();
+                newCategoryInput.value = '';
+                showStatus('Đã thêm danh mục mới!');
+            });
+            document.getElementById('manageCategoriesBtn').addEventListener('click', showManageCategoriesModal);
+            document.getElementById('closeManageCategoriesBtn').addEventListener('click', hideManageCategoriesModal);
+            document.getElementById('manageCategoriesModal').addEventListener('click', (e) => {
+                if (e.target.id === 'manageCategoriesModal') hideManageCategoriesModal();
             });
         } else {
             document.getElementById('currentUrl').textContent = 'Không thể lấy thông tin trang';
@@ -812,6 +835,132 @@ document.addEventListener('DOMContentLoaded', () => {
         hidePreviewModal();
     });
 });
+
+
+function updateCategoryOptions() {
+    const categoryInput = document.getElementById('categoryInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const customCategoriesGroup = document.getElementById('customCategories');
+
+    // Cập nhật dropdown trong modal
+    categoryInput.innerHTML = `
+          <option value="Uncategorized">Chưa phân loại</option>
+          <option value="Work">Công việc</option>
+          <option value="Study">Học tập</option>
+          <option value="Entertainment">Giải trí</option>
+          <option value="Other">Khác</option>
+          ${customCategories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('')}
+      `;
+
+    // Cập nhật dropdown lọc
+    customCategoriesGroup.innerHTML = customCategories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
+}
+
+function showManageCategoriesModal() {
+    renderCategoriesList();
+    document.getElementById('manageCategoriesModal').classList.add('show');
+}
+
+function hideManageCategoriesModal() {
+    document.getElementById('manageCategoriesModal').classList.remove('show');
+}
+
+function renderCategoriesList() {
+    const listEl = document.getElementById('customCategoriesList');
+    const noCategoriesMessage = document.getElementById('noCategoriesMessage');
+    if (customCategories.length === 0) {
+        listEl.innerHTML = '';
+        noCategoriesMessage.style.display = 'block';
+        return;
+    }
+    noCategoriesMessage.style.display = 'none';
+    listEl.innerHTML = customCategories.map((cat, index) => `
+          <div class="category-item">
+              <input type="text" value="${escapeHtml(cat)}" data-index="${index}" class="category-name-input" />
+              <button class="rename-btn" title="Đổi tên" data-index="${index}">✏️</button>
+              <button class="delete-category-btn" title="Xóa" data-index="${index}">🗑️</button>
+          </div>
+      `).join('');
+    document.querySelectorAll('.rename-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            const input = e.target.parentElement.querySelector('.category-name-input');
+            renameCategory(index, input.value.trim());
+        });
+    });
+    document.querySelectorAll('.delete-category-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            deleteCategory(index);
+        });
+    });
+}
+
+async function renameCategory(index, newName) {
+    if (!newName || customCategories.includes(newName) || ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'].includes(newName)) {
+        showStatus('Tên danh mục không hợp lệ hoặc đã tồn tại!', 'error');
+        return;
+    }
+    const oldName = customCategories[index];
+    customCategories[index] = newName;
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+    try {
+        const db = await openDB();
+        const tx = db.transaction('favorites', 'readwrite');
+        const store = tx.objectStore('favorites');
+        const request = store.getAll();
+        request.onsuccess = async () => {
+            const favoritesToUpdate = request.result.filter(fav => fav.category === oldName);
+            for (const fav of favoritesToUpdate) {
+                fav.category = newName;
+                await store.put(fav);
+            }
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+            favorites = await getAllFavorites();
+            updateCategoryOptions();
+            renderFavorites();
+            renderCategoriesList();
+            showStatus('Đã đổi tên danh mục!');
+        };
+    } catch (err) {
+        console.error('Rename category error:', err);
+        showStatus('Lỗi khi đổi tên danh mục!', 'error');
+    }
+}
+
+async function deleteCategory(index) {
+    const category = customCategories[index];
+    customCategories.splice(index, 1);
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+    try {
+        const db = await openDB();
+        const tx = db.transaction('favorites', 'readwrite');
+        const store = tx.objectStore('favorites');
+        const request = store.getAll();
+        request.onsuccess = async () => {
+            const favoritesToUpdate = request.result.filter(fav => fav.category === category);
+            for (const fav of favoritesToUpdate) {
+                fav.category = 'Uncategorized';
+                await store.put(fav);
+            }
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+            favorites = await getAllFavorites();
+            updateCategoryOptions();
+            renderFavorites();
+            renderCategoriesList();
+            showStatus('Đã xóa danh mục!');
+        };
+    } catch (err) {
+        console.error('Delete category error:', err);
+        showStatus('Lỗi khi xóa danh mục!', 'error');
+    }
+}
 
 async function checkReminders() {
     const now = new Date();

@@ -1,14 +1,3 @@
-let currentTab = null;
-let favorites = [];
-let filteredFavorites = [];
-let autoScrollInterval = null;
-let scrollContainer = null;
-let draggedElement = null;
-let draggedIndex = -1;
-let currentNoteItemId = null;
-let deleteItemId = null;
-let customCategories = [];
-
 async function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open("FavoritesDB", 3);
@@ -217,7 +206,7 @@ function renderFavorites(favoritesToRender = null) {
         }
         itemEl.querySelector('.note-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            showNoteModal(fav.id, fav.note || '');
+            showNoteModal(fav.id, fav);
         });
         itemEl.querySelector('.delete-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -345,16 +334,14 @@ function confirmDelete() {
     }
 }
 
-function showNoteModal(id, note) {
+function showNoteModal(id, fav) {
     currentNoteItemId = id;
-    const fav = favorites.find(f => f.id === id);
     if (!fav) {
         showStatus("Không tìm thấy mục yêu thích!", "error");
         return;
     }
-    // Ensure category options are updated before setting the value
     updateCategoryOptions();
-    document.getElementById('noteInput').value = note;
+    document.getElementById('noteInput').value = fav.note || '';
     document.getElementById('titleInput').value = fav.title || '';
     document.getElementById('enableReminder').checked = !!fav.reminderTime;
     const reminderOptions = document.getElementById('reminderOptions');
@@ -364,7 +351,6 @@ function showNoteModal(id, note) {
         const date = new Date(fav.reminderTime);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
-        Peters
         const day = String(date.getDate()).padStart(2, '0');
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -375,7 +361,6 @@ function showNoteModal(id, note) {
         document.getElementById('reminderTime').value = '';
     }
     document.getElementById('repeatType').value = fav.repeatType || 'none';
-    // Set the category dropdown to the favorite's current category
     document.getElementById('categoryInput').value = fav.category || 'Uncategorized';
     document.getElementById('noteModal').classList.add('show');
 }
@@ -427,81 +412,6 @@ function showFullscreenPreview(screenshot) {
         return;
     }
 
-    const js = `
-        (function() {
-            if (document.getElementById('fullscreenPreviewOverlay')) return;
-            const overlay = document.createElement('div');
-            overlay.id = 'fullscreenPreviewOverlay';
-            overlay.className = 'fullscreen-preview-overlay';
-            const img = document.createElement('img');
-            img.className = 'fullscreen-preview-image';
-            img.src = '${screenshot}';
-            
-            let scale = 1;
-            const minScale = 0.5;
-            const maxScale = 5;
-            let translateX = 0;
-            let translateY = 0;
-            let isDragging = false;
-            let startX, startY, initialX, initialY;
-
-            img.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                scale = Math.max(minScale, Math.min(maxScale, scale + delta));
-                img.style.transform = 'scale(' + scale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
-            });
-
-            img.addEventListener('mousedown', (e) => {
-                if (scale <= 1) return; // Chỉ kéo khi phóng to
-                e.preventDefault();
-                isDragging = true;
-                img.classList.add('dragging');
-                startX = e.clientX;
-                startY = e.clientY;
-                initialX = translateX;
-                initialY = translateY;
-                document.body.style.userSelect = 'none';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                translateX = initialX + dx / scale;
-                translateY = initialY + dy / scale;
-                img.style.transform = 'scale(' + scale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                img.classList.remove('dragging');
-                document.body.style.userSelect = '';
-            });
-
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'fullscreen-close-btn';
-            closeBtn.innerHTML = '✕';
-            closeBtn.onclick = () => overlay.remove();
-            overlay.appendChild(img);
-            overlay.appendChild(closeBtn);
-            document.body.appendChild(overlay);
-            document.body.style.overflow = 'hidden';
-            overlay.onclick = (e) => {
-                if (e.target === overlay) {
-                    overlay.remove();
-                    document.body.style.overflow = '';
-                }
-            };
-            closeBtn.onclick = () => {
-                overlay.remove();
-                document.body.style.overflow = '';
-            };
-        })();
-    `;
-
     chrome.scripting.insertCSS({
         target: { tabId: currentTab.id },
         files: ['fullscreen.css']
@@ -533,7 +443,7 @@ function showFullscreenPreview(screenshot) {
                 });
 
                 img.addEventListener('mousedown', (e) => {
-                    if (scale <= 1) return; // Chỉ kéo khi phóng to
+                    if (scale <= 1) return;
                     e.preventDefault();
                     isDragging = true;
                     img.classList.add('dragging');
@@ -595,7 +505,7 @@ function showFullscreenPreview(screenshot) {
 
 async function saveNote() {
     const newNote = document.getElementById('noteInput').value;
-    const newTitle = document.getElementById('titleInput').value.trim() || fav.title;
+    const newTitle = document.getElementById('titleInput').value.trim() || favorites.find(f => f.id === currentNoteItemId)?.title;
     const reminderEnabled = document.getElementById('enableReminder').checked;
     const reminderTime = reminderEnabled ? document.getElementById('reminderTime').value : null;
     const repeatType = reminderEnabled ? document.getElementById('repeatType').value : 'none';
@@ -604,7 +514,7 @@ async function saveNote() {
     if (index !== -1) {
         favorites[index].note = newNote;
         favorites[index].title = newTitle;
-        favorites[index].reminderTime = reminderTime;
+        favorites[index].reminderTime = reminderTime ? new Date(reminderTime).toISOString() : null;
         favorites[index].repeatType = repeatType;
         favorites[index].category = category;
         try {
@@ -715,8 +625,6 @@ async function init() {
             document.getElementById('exportBtn').addEventListener('click', exportFavorites);
             document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
             document.getElementById('importFile').addEventListener('change', importFavorites);
-            setInterval(checkReminders, 60 * 1000);
-            checkReminders();
             document.getElementById('categoryFilter').addEventListener('change', () => {
                 filterFavorites(document.getElementById('searchInput').value);
             });
@@ -954,6 +862,7 @@ async function deleteCategory(index) {
 
 async function checkReminders() {
     const now = new Date();
+    const favorites = await getAllFavorites();
     for (const fav of favorites) {
         if (!fav.reminderTime) continue;
         const reminderTime = new Date(fav.reminderTime);
@@ -974,7 +883,7 @@ async function checkReminders() {
             } else {
                 fav.reminderTime = null;
             }
-            fav.reminderTime = reminderTime.toISOString();
+            fav.reminderTime = reminderTime ? reminderTime.toISOString() : null;
             try {
                 await updateFavorite(fav);
             } catch (e) {
@@ -1040,4 +949,15 @@ async function importFavorites(event) {
         console.error('Import error:', err);
         showStatus('Lỗi khi nhập danh sách!', 'error');
     }
+}
+
+// Background script logic
+function setupBackgroundReminders() {
+    setInterval(checkReminders, 60 * 1000);
+    checkReminders();
+}
+
+// Call this in background.js
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+    setupBackgroundReminders();
 }

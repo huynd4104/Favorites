@@ -149,15 +149,21 @@
                             <div id="reminderOptions" class="reminder-options">
                                 <div class="reminder-inputs">
                                     <div class="input-group">
-                                        <label class="input-label" for="reminderTime">🗓️ Thời gian nhắc nhở</label>
+                                        <label class="input-label" for="reminderTime">
+                                            <span>🗓️</span> Thời gian nhắc nhở
+                                        </label>
                                         <input type="datetime-local" id="reminderTime" class="datetime-input">
                                     </div>
                                     <div class="input-group">
-                                        <label class="input-label" for="repeatType">🔄 Tần suất lặp lại</label>
+                                        <label class="input-label" for="repeatType">
+                                            <span>🔄</span> Tần suất lặp lại
+                                        </label>
                                         <select id="repeatType" class="select-input">
                                             <option value="none">🚫 Không lặp</option>
+                                            <option value="hourly">⏰ Mỗi giờ</option>
                                             <option value="daily">📅 Mỗi ngày</option>
                                             <option value="weekly">📆 Mỗi tuần</option>
+                                            <option value="monthly">🗓️ Mỗi tháng</option>
                                         </select>
                                     </div>
                                 </div>

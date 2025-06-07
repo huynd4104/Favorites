@@ -35,34 +35,46 @@ async function updateFavorite(fav) {
     });
 }
 
-function checkReminders() {
-    getAllFavorites().then(favorites => {
+async function checkReminders() {
+    try {
         const now = new Date();
-        favorites.forEach(async fav => {
-            if (!fav.reminderTime) return;
+        const favorites = await getAllFavorites();
+        for (const fav of favorites) {
+            if (!fav.reminderTime) continue;
             const reminderTime = new Date(fav.reminderTime);
             const timeDiff = reminderTime - now;
-            if (timeDiff <= 0 && timeDiff > -60 * 1000) { // Trong vòng 1 phút
+            if (timeDiff <= 0 || (timeDiff <= 60 * 1000 && timeDiff > -60 * 1000)) {
                 const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
                 chrome.notifications.create(fav.id, {
                     type: 'basic',
                     iconUrl: 'icon48.png',
                     title: "⏰ Nhắc nhở URL",
                     message: shortTitle,
-                    priority: 2
+                    priority: 2,
+                    requireInteraction: true
                 });
-                if (fav.repeatType === 'daily') {
+                if (fav.repeatType === 'hourly') {
+                    reminderTime.setHours(reminderTime.getHours() + 1);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
+                } else if (fav.repeatType === 'daily') {
                     reminderTime.setDate(reminderTime.getDate() + 1);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
                 } else if (fav.repeatType === 'weekly') {
                     reminderTime.setDate(reminderTime.getDate() + 7);
-                } else {
-                    fav.reminderTime = null;
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
+                } else if (fav.repeatType === 'monthly') {
+                    reminderTime.setMonth(reminderTime.getMonth() + 1);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
                 }
-                fav.reminderTime = reminderTime.toISOString();
-                await updateFavorite(fav);
             }
-        });
-    }).catch(err => console.error('Error checking reminders:', err));
+        }
+    } catch (err) {
+        console.error('Error checking reminders:', err);
+    }
 }
 
 setInterval(checkReminders, 60 * 1000);

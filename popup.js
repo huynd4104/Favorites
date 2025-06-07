@@ -927,12 +927,20 @@ async function checkReminders() {
                     requireInteraction: true // Thông báo không tự tắt
                 });
                 // Cập nhật reminderTime nếu có repeatType
-                if (fav.repeatType === 'daily') {
+                if (fav.repeatType === 'hourly') {
+                    reminderTime.setHours(reminderTime.getHours() + 1);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
+                } else if (fav.repeatType === 'daily') {
                     reminderTime.setDate(reminderTime.getDate() + 1);
                     fav.reminderTime = reminderTime.toISOString();
                     await updateFavorite(fav);
                 } else if (fav.repeatType === 'weekly') {
                     reminderTime.setDate(reminderTime.getDate() + 7);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
+                } else if (fav.repeatType === 'monthly') {
+                    reminderTime.setMonth(reminderTime.getMonth() + 1);
                     fav.reminderTime = reminderTime.toISOString();
                     await updateFavorite(fav);
                 }

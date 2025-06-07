@@ -1,6 +1,6 @@
 async function openDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open("FavoritesDB", 2);
+        const request = indexedDB.open("FavoritesDB", 3);
         request.onerror = () => reject("Lỗi mở IndexedDB");
         request.onsuccess = () => resolve(request.result);
         request.onupgradeneeded = (e) => {

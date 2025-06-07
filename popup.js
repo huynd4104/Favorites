@@ -711,6 +711,9 @@ async function init() {
             favorites = await getAllFavorites();
             updateAddButtonState();
             renderFavorites();
+            document.getElementById('exportBtn').addEventListener('click', exportFavorites);
+            document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+            document.getElementById('importFile').addEventListener('change', importFavorites);
             setInterval(checkReminders, 60 * 1000);
             checkReminders();
             document.getElementById('categoryFilter').addEventListener('change', () => {
@@ -836,5 +839,63 @@ async function checkReminders() {
                 console.error("Error updating reminder:", e);
             }
         }
+    }
+}
+
+async function exportFavorites() {
+    try {
+        const favorites = await getAllFavorites();
+        const dataStr = JSON.stringify(favorites, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `favorites_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showStatus('Đã xuất danh sách thành công!');
+    } catch (err) {
+        console.error('Export error:', err);
+        showStatus('Lỗi khi xuất danh sách!', 'error');
+    }
+}
+
+async function importFavorites(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const importedFavorites = JSON.parse(e.target.result);
+                if (!Array.isArray(importedFavorites)) throw new Error('Dữ liệu không hợp lệ');
+                const db = await openDB();
+                const tx = db.transaction('favorites', 'readwrite');
+                const store = tx.objectStore('favorites');
+                for (const fav of importedFavorites) {
+                    if (fav.id && fav.url) {
+                        await store.put(fav);
+                    }
+                }
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                favorites = await getAllFavorites();
+                renderFavorites();
+                updateAddButtonState();
+                showStatus('Đã nhập danh sách thành công!');
+            } catch (err) {
+                console.error('Import error:', err);
+                showStatus('Lỗi khi nhập danh sách!', 'error');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset input file
+    } catch (err) {
+        console.error('Import error:', err);
+        showStatus('Lỗi khi nhập danh sách!', 'error');
     }
 }

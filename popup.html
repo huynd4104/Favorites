@@ -1,12 +1,21 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <title>URL Favorites</title>
 </head>
+
 <body>
+    
+    <div class="import-export-buttons">
+        <button id="exportBtn" class="modal-btn btn-export">📤 Xuất danh sách</button>
+        <button id="importBtn" class="modal-btn btn-import">📥 Nhập danh sách</button>
+        <input type="file" id="importFile" accept=".json">
+    </div>
+
     <div class="section">
         <h4>📋 Trang hiện tại</h4>
         <div class="current-url" id="currentUrl">Đang tải...</div>
@@ -142,4 +151,5 @@
 
     <script src="popup.js"></script>
 </body>
+
 </html>

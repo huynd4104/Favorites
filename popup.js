@@ -507,18 +507,27 @@ async function saveNote() {
     const newNote = document.getElementById('noteInput').value;
     const newTitle = document.getElementById('titleInput').value.trim() || favorites.find(f => f.id === currentNoteItemId)?.title;
     const reminderEnabled = document.getElementById('enableReminder').checked;
-    const reminderTime = reminderEnabled ? document.getElementById('reminderTime').value : null;
+    const reminderTimeInput = document.getElementById('reminderTime').value;
+    const reminderTime = reminderEnabled && reminderTimeInput ? new Date(reminderTimeInput).toISOString() : null;
     const repeatType = reminderEnabled ? document.getElementById('repeatType').value : 'none';
     const category = document.getElementById('categoryInput').value;
     const index = favorites.findIndex(f => f.id === currentNoteItemId);
     if (index !== -1) {
         favorites[index].note = newNote;
         favorites[index].title = newTitle;
-        favorites[index].reminderTime = reminderTime ? new Date(reminderTime).toISOString() : null;
+        favorites[index].reminderTime = reminderTime;
         favorites[index].repeatType = repeatType;
         favorites[index].category = category;
         try {
             await updateFavorite(favorites[index]);
+            if (!reminderEnabled) {
+                // Xóa thông báo nếu bỏ chọn nhắc nhở
+                chrome.notifications.clear(favorites[index].id, (wasCleared) => {
+                    if (!wasCleared) {
+                        console.warn(`Không thể xóa thông báo cho ID: ${favorites[index].id}`);
+                    }
+                });
+            }
             renderFavorites();
             showStatus("Đã lưu ghi chú!");
         } catch (e) {
@@ -861,35 +870,39 @@ async function deleteCategory(index) {
 }
 
 async function checkReminders() {
-    const now = new Date();
-    const favorites = await getAllFavorites();
-    for (const fav of favorites) {
-        if (!fav.reminderTime) continue;
-        const reminderTime = new Date(fav.reminderTime);
-        const timeDiff = reminderTime - now;
-        if (timeDiff <= 0 && timeDiff > -60 * 1000) {
-            const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
-            chrome.notifications.create(fav.id, {
-                type: 'basic',
-                iconUrl: 'icon48.png',
-                title: "⏰ Nhắc nhở URL",
-                message: shortTitle,
-                priority: 2
-            });
-            if (fav.repeatType === 'daily') {
-                reminderTime.setDate(reminderTime.getDate() + 1);
-            } else if (fav.repeatType === 'weekly') {
-                reminderTime.setDate(reminderTime.getDate() + 7);
-            } else {
-                fav.reminderTime = null;
-            }
-            fav.reminderTime = reminderTime ? reminderTime.toISOString() : null;
-            try {
-                await updateFavorite(fav);
-            } catch (e) {
-                console.error("Error updating reminder:", e);
+    try {
+        const now = new Date();
+        const favorites = await getAllFavorites();
+        for (const fav of favorites) {
+            if (!fav.reminderTime) continue;
+            const reminderTime = new Date(fav.reminderTime);
+            const timeDiff = reminderTime - now;
+            // Nếu nhắc nhở đã quá hạn hoặc đến thời điểm, gửi thông báo
+            if (timeDiff <= 0 || (timeDiff <= 60 * 1000 && timeDiff > -60 * 1000)) {
+                const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
+                chrome.notifications.create(fav.id, {
+                    type: 'basic',
+                    iconUrl: 'icon48.png',
+                    title: "⏰ Nhắc nhở URL",
+                    message: shortTitle,
+                    priority: 2,
+                    requireInteraction: true // Thông báo không tự tắt
+                });
+                // Cập nhật reminderTime nếu có repeatType
+                if (fav.repeatType === 'daily') {
+                    reminderTime.setDate(reminderTime.getDate() + 1);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
+                } else if (fav.repeatType === 'weekly') {
+                    reminderTime.setDate(reminderTime.getDate() + 7);
+                    fav.reminderTime = reminderTime.toISOString();
+                    await updateFavorite(fav);
+                }
+                // Không xóa reminderTime cho repeatType 'none', để thông báo tiếp tục cho đến khi tắt
             }
         }
+    } catch (err) {
+        console.error('Error checking reminders:', err);
     }
 }
 

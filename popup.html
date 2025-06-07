@@ -98,65 +98,67 @@
 
     <div id="noteModal" class="modal-overlay">
         <div class="modal-container">
-            <div class="modal-header">
-                <span class="modal-icon">📝</span>
-                Ghi chú & Nhắc nhở
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label class="input-label" for="titleInput">📋 Tiêu đề</label>
-                    <input type="text" id="titleInput" placeholder="Nhập tiêu đề mới" />
+            <div class="modal-content-wrapper"> <!-- Thêm wrapper này -->
+                <div class="modal-header">
+                    <span class="modal-icon">📝</span>
+                    <h3>Ghi chú & Nhắc nhở</h3>
                 </div>
-                <div class="input-group">
-                    <label class="input-label">💭 Nội dung ghi chú</label>
-                    <textarea id="noteInput" rows="4" placeholder="Nhập ghi chú của bạn..."></textarea>
-                </div>
-                <div class="reminder-section">
-                    <div class="reminder-toggle">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="enableReminder">
-                            <span class="slider"></span>
-                        </label>
-                        <div class="toggle-info">
-                            <span class="toggle-title">⏰ Đặt lịch nhắc nhở</span>
+                <div class="modal-body">
+                    <!-- Nội dung hiện tại của modal-body giữ nguyên -->
+                    <div class="input-group">
+                        <label class="input-label" for="titleInput">📋 Tiêu đề</label>
+                        <input type="text" id="titleInput" placeholder="Nhập tiêu đề...">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="noteInput">💭 Nội dung ghi chú</label>
+                        <textarea id="noteInput" placeholder="Nhập ghi chú..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <div class="reminder-section">
+                            <div class="reminder-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="enableReminder">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-info">
+                                    <span class="toggle-title">⏰ Đặt lịch nhắc nhở</span>
+                                </div>
+                            </div>
+                            <div id="reminderOptions" class="reminder-options">
+                                <div class="reminder-inputs">
+                                    <div class="input-group">
+                                        <label class="input-label" for="reminderTime">🗓️ Thời gian nhắc nhở</label>
+                                        <input type="datetime-local" id="reminderTime" class="datetime-input">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label" for="repeatType">🔄 Tần suất lặp lại</label>
+                                        <select id="repeatType" class="select-input">
+                                            <option value="none">🚫 Không lặp</option>
+                                            <option value="daily">📅 Mỗi ngày</option>
+                                            <option value="weekly">📆 Mỗi tuần</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div id="reminderOptions" class="reminder-options">
-                        <div class="reminder-inputs">
-                            <div class="input-group">
-                                <label class="input-label">🗓️ Thời gian nhắc nhở</label>
-                                <input type="datetime-local" id="reminderTime" class="datetime-input">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">🔄 Tần suất lặp lại</label>
-                                <select id="repeatType" class="select-input">
-                                    <option value="none">🚫 Không lặp</option>
-                                    <option value="daily">📅 Mỗi ngày</option>
-                                    <option value="weekly">📆 Mỗi tuần</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="input-group">
+                        <label class="input-label" for="categoryInput">📌 Danh mục</label>
+                        <select id="categoryInput" class="select-input">
+                            <option value="Uncategorized">Chưa phân loại</option>
+                            <option value="Work">Công việc</option>
+                            <option value="Study">Học tập</option>
+                            <option value="Entertainment">Giải trí</option>
+                            <option value="Other">Khác</option>
+                        </select>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label class="input-label">📌 Danh mục</label>
-                    <select id="categoryInput" class="select-input">
-                        <option value="Uncategorized">Chưa phân loại</option>
-                        <option value="Work">Công việc</option>
-                        <option value="Study">Học tập</option>
-                        <option value="Entertainment">Giải trí</option>
-                        <option value="Other">Khác</option>
-                    </select>
+                <div class="modal-actions">
+                    <button id="cancelNoteBtn" class="modal-btn btn-cancel"><span class="btn-icon">❌</span> Hủy</button>
+                    <button id="saveNoteBtn" class="modal-btn btn-save"><span class="btn-icon">💾</span> Lưu ghi
+                        chú</button>
                 </div>
-            </div>
-            <div class="modal-actions">
-                <button id="cancelNoteBtn" class="modal-btn btn-cancel">
-                    <span class="btn-icon">❌</span> Hủy
-                </button>
-                <button id="saveNoteBtn" class="modal-btn btn-save">
-                    <span class="btn-icon">💾</span> Lưu ghi chú
-                </button>
-            </div>
+            </div> <!-- Đóng wrapper -->
         </div>
     </div>
 

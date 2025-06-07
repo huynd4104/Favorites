@@ -1,4 +1,3 @@
-// State variables
 let currentTab = null;
 let favorites = [];
 let filteredFavorites = [];
@@ -10,7 +9,6 @@ let currentNoteItemId = null;
 let deleteItemId = null;
 let customCategories = [];
 
-// IndexedDB Operations
 async function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open("FavoritesDB", 3);
@@ -75,7 +73,6 @@ async function deleteFavoriteById(id) {
     });
 }
 
-// Tab and Favorite Management
 async function getCurrentTab() {
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -142,7 +139,6 @@ async function deleteFavorite(id) {
     }
 }
 
-// UI Rendering
 function showStatus(message, type = 'success') {
     const statusModal = document.getElementById('statusModal');
     const statusEl = document.getElementById('statusMessage');
@@ -162,7 +158,6 @@ function updateAddButtonState() {
     addBtn.disabled = exists;
 }
 
-//ánh xạ category sang tiếng việt
 function translateCategory(category) {
     const categoryMap = {
         'Uncategorized': 'Chưa phân loại',
@@ -236,7 +231,6 @@ function renderFavorites(favoritesToRender = null) {
     });
 }
 
-// Drag and Drop
 function addDragListeners(itemEl, index) {
     itemEl.addEventListener('dragstart', (e) => {
         draggedElement = itemEl;
@@ -333,7 +327,6 @@ function stopAutoScroll() {
     document.getElementById('scrollDownIndicator').classList.remove('show');
 }
 
-// Modal Handling
 function showDeleteModal(id, title) {
     deleteItemId = id;
     document.getElementById('deleteItemTitle').textContent = title;
@@ -355,6 +348,12 @@ function confirmDelete() {
 function showNoteModal(id, note) {
     currentNoteItemId = id;
     const fav = favorites.find(f => f.id === id);
+    if (!fav) {
+        showStatus("Không tìm thấy mục yêu thích!", "error");
+        return;
+    }
+    // Ensure category options are updated before setting the value
+    updateCategoryOptions();
     document.getElementById('noteInput').value = note;
     document.getElementById('titleInput').value = fav.title || '';
     document.getElementById('enableReminder').checked = !!fav.reminderTime;
@@ -362,24 +361,22 @@ function showNoteModal(id, note) {
     if (fav.reminderTime) {
         reminderOptions.style.display = 'block';
         reminderOptions.classList.add('show');
-    } else {
-        reminderOptions.style.display = 'none';
-        reminderOptions.classList.remove('show');
-    }
-    if (fav.reminderTime) {
         const date = new Date(fav.reminderTime);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
+        Peters
         const day = String(date.getDate()).padStart(2, '0');
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         document.getElementById('reminderTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
     } else {
+        reminderOptions.style.display = 'none';
+        reminderOptions.classList.remove('show');
         document.getElementById('reminderTime').value = '';
     }
     document.getElementById('repeatType').value = fav.repeatType || 'none';
+    // Set the category dropdown to the favorite's current category
     document.getElementById('categoryInput').value = fav.category || 'Uncategorized';
-    updateCategoryOptions();
     document.getElementById('noteModal').classList.add('show');
 }
 
@@ -622,7 +619,6 @@ async function saveNote() {
     hideNoteModal();
 }
 
-// Search and Filter
 function highlightText(text, searchTerm) {
     if (!searchTerm) return escapeHtml(text);
     const escapedText = escapeHtml(text);
@@ -691,7 +687,6 @@ function clearSearch() {
     searchInput.focus();
 }
 
-// Utility
 function escapeHtml(unsafe) {
     return unsafe
         .replace(/&/g, "&amp;")
@@ -701,7 +696,6 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-// Initialization
 async function init() {
     try {
         const permissionGranted = await chrome.permissions.contains({
@@ -755,7 +749,6 @@ async function init() {
     }
 }
 
-// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     init();
     document.getElementById('addBtn').addEventListener('click', () => {
@@ -836,13 +829,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
 function updateCategoryOptions() {
     const categoryInput = document.getElementById('categoryInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const customCategoriesGroup = document.getElementById('customCategories');
 
-    // Cập nhật dropdown trong modal
     categoryInput.innerHTML = `
           <option value="Uncategorized">Chưa phân loại</option>
           <option value="Work">Công việc</option>
@@ -852,7 +843,6 @@ function updateCategoryOptions() {
           ${customCategories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('')}
       `;
 
-    // Cập nhật dropdown lọc
     customCategoriesGroup.innerHTML = customCategories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
 }
 
@@ -968,7 +958,7 @@ async function checkReminders() {
         if (!fav.reminderTime) continue;
         const reminderTime = new Date(fav.reminderTime);
         const timeDiff = reminderTime - now;
-        if (timeDiff <= 0 && timeDiff > -60 * 1000) { // Trong vòng 1 phút
+        if (timeDiff <= 0 && timeDiff > -60 * 1000) {
             const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
             chrome.notifications.create(fav.id, {
                 type: 'basic',
@@ -1045,7 +1035,7 @@ async function importFavorites(event) {
             }
         };
         reader.readAsText(file);
-        event.target.value = ''; // Reset input file
+        event.target.value = '';
     } catch (err) {
         console.error('Import error:', err);
         showStatus('Lỗi khi nhập danh sách!', 'error');

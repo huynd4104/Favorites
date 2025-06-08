@@ -420,7 +420,7 @@ function hidePreviewModal() {
     previewModal.classList.remove('show');
 }
 
-function showFullscreenPreview(screenshot) {
+async function showFullscreenPreview(screenshot) {
     if (!currentTab || !screenshot) {
         showStatus("Không thể hiển thị xem trước toàn màn hình!", "error");
         return;
@@ -457,7 +457,6 @@ function showFullscreenPreview(screenshot) {
                 });
 
                 img.addEventListener('mousedown', (e) => {
-                    if (scale <= 1) return;
                     e.preventDefault();
                     isDragging = true;
                     img.classList.add('dragging');

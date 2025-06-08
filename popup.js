@@ -800,9 +800,22 @@ function renderCategoriesList() {
         return;
     }
     noCategoriesMessage.style.display = 'none';
+    // Tạo một đối tượng để đếm số URL cho mỗi danh mục
+    const categoryCounts = {};
+    const predefinedCategories = ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'];
+    // Khởi tạo số đếm cho các danh mục mặc định
+    predefinedCategories.forEach(cat => {
+        categoryCounts[cat] = favorites.filter(fav => fav.category === cat).length;
+    });
+    // Đếm số URL cho các danh mục tùy chỉnh
+    customCategories.forEach(cat => {
+        categoryCounts[cat] = favorites.filter(fav => fav.category === cat).length;
+    });
+    // Hiển thị danh sách danh mục tùy chỉnh với số lượng URL
     listEl.innerHTML = customCategories.map((cat, index) => `
         <div class="category-item">
             <input type="text" value="${escapeHtml(cat)}" data-index="${index}" class="category-name-input" />
+            <span class="category-count">(${categoryCounts[cat]})</span>
             <button class="rename-btn" title="Đổi tên" data-index="${index}">✏️</button>
             <button class="delete-category-btn" title="Xóa" data-index="${index}">🗑️</button>
         </div>

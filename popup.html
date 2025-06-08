@@ -16,18 +16,17 @@
         <input type="file" id="importFile" accept=".json">
     </div>
 
-    <button id="manageCategoriesBtn" class="modal-btn btn-save" style="width: 100%; margin-bottom: 12px;">🗂️ Quản lý
-        danh mục</button>
+    <button id="manageCategoriesBtn" class="modal-btn btn-save">🗂️ Quản lý danh mục</button>
 
     <div id="manageCategoriesModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">🗂️ Quản lý danh mục</div>
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <div class="modal-add-category">
                 <input type="text" id="newCategoryInput" placeholder="Nhập danh mục mới" class="select-input" />
                 <button id="addCategoryBtn" class="modal-btn btn-save">👌 Thêm</button>
             </div>
             <div class="modal-body">
-                <div id="customCategoriesList" style="max-height: 200px; overflow-y: auto;"></div>
+                <div id="customCategoriesList"></div>
                 <div class="no-results" id="noCategoriesMessage" style="display: none;">Chưa có danh mục tùy chỉnh</div>
             </div>
             <div class="modal-actions">
@@ -103,8 +102,7 @@
                 <h3>Xác nhận xóa danh mục</h3>
             </div>
             <div class="modal-content">
-                Bạn có chắc muốn xóa danh mục <span id="deleteCategoryName"
-                    style="font-weight: 600; color: #333;"></span>?
+                Bạn có chắc muốn xóa danh mục <strong id="deleteCategoryName"></strong>?
                 Tất cả URL trong danh mục này sẽ được chuyển về "Chưa phân loại".
             </div>
             <div class="modal-actions">
@@ -120,13 +118,12 @@
 
     <div id="noteModal" class="modal-overlay">
         <div class="modal-container">
-            <div class="modal-content-wrapper"> <!-- Thêm wrapper này -->
+            <div class="modal-content-wrapper"> 
                 <div class="modal-header">
                     <span class="modal-icon">📝</span>
                     <h3>Ghi chú & Nhắc nhở</h3>
                 </div>
                 <div class="modal-body">
-                    <!-- Nội dung hiện tại của modal-body giữ nguyên -->
                     <div class="input-group">
                         <label class="input-label" for="titleInput">📋 Tiêu đề</label>
                         <input type="text" id="titleInput" placeholder="Nhập tiêu đề...">
@@ -186,7 +183,7 @@
                     <button id="saveNoteBtn" class="modal-btn btn-save"><span class="btn-icon">💾</span> Lưu ghi
                         chú</button>
                 </div>
-            </div> <!-- Đóng wrapper -->
+            </div>
         </div>
     </div>
 

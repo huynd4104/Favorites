@@ -897,6 +897,17 @@ input:checked+.slider:before {
     border-top: 1px solid #f0f0f0;
 }
 
+#manageCategoriesBtn {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.modal-add-category {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
 .modal-btn {
     display: flex;
     align-items: center;
@@ -1173,6 +1184,8 @@ input:checked+.slider:before {
 #customCategoriesList {
     scrollbar-width: none;
     -ms-overflow-style: none;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 #customCategoriesList::-webkit-scrollbar {

@@ -36,7 +36,7 @@ async function getAllFavorites() {
         const request = store.getAll();
         request.onsuccess = () => {
             const results = request.result;
-            results.sort((a, b) => (a.order || 0) - (b.order || 0));
+            results.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
             resolve(results);
         };
         request.onerror = () => reject(request.error);
@@ -120,6 +120,7 @@ async function saveFavorite(url, title) {
         }
         await addFavorite(favorite);
         favorites.unshift(favorite);
+        updateDomainFilter();
         renderFavorites();
         showStatus("Đã thêm vào favorites!");
         updateAddButtonState();
@@ -133,6 +134,7 @@ async function deleteFavorite(id) {
     try {
         await deleteFavoriteById(id);
         favorites = favorites.filter(f => f.id !== id);
+        updateDomainFilter();
         renderFavorites();
         showStatus("Đã xóa khỏi favorites!");
         updateAddButtonState();
@@ -172,67 +174,89 @@ function translateCategory(category) {
     return categoryMap[category] || category || 'Chưa phân loại';
 }
 
+function formatDate(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
+}
+
 function renderFavorites(favoritesToRender = null) {
     const listEl = document.getElementById('favoritesList');
     const dataToRender = favoritesToRender || favorites;
 
     if (dataToRender.length === 0) {
-        if (favoritesToRender !== null && favorites.length > 0) {
-            listEl.innerHTML = '<div class="no-results">🔍 Không tìm thấy kết quả phù hợp</div>';
-        } else {
-            listEl.innerHTML = '<div class="empty-message">Chưa có URL nào được lưu</div>';
-        }
+        listEl.innerHTML = favoritesToRender !== null && favorites.length > 0
+            ? '<div class="no-results">🔍 Không tìm thấy kết quả phù hợp</div>'
+            : '<div class="empty-message">Chưa có URL nào được lưu</div>';
         return;
     }
 
-    listEl.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     dataToRender.forEach((fav, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'favorite-item';
-        const reminderIcon = fav.reminderTime ? `<span style="position: absolute; top: 4px; left: 4px;">⏰</span>` : '';
+        itemEl.dataset.id = fav.id;
+        itemEl.draggable = favoritesToRender === null;
+
+        const reminderIcon = fav.reminderTime ? `<span class="reminder-indicator">⏰</span>` : '';
+        const title = fav.highlightedTitle || escapeHtml(fav.title);
+        const url = fav.highlightedUrl || escapeHtml(fav.url);
+
         itemEl.innerHTML = `
             ${reminderIcon}
-            <div class="drag-handle" title="Kéo để thay đổi vị trí">⋮⋮</div>
+            <div class="drag-handle" title="Kéo để thay đổi vị trí" style="${favoritesToRender !== null ? 'display:none' : ''}">⋮⋮</div>
             <div class="favorite-content">
                 <div class="favorite-info">
                     <a href="${escapeHtml(fav.url)}" class="favorite-link" target="_blank" title="${escapeHtml(fav.url)}">
-                        <div class="favorite-title">${fav.highlightedTitle || escapeHtml(fav.title)}</div>
-                        <div class="favorite-url">${fav.highlightedUrl || escapeHtml(fav.url)}</div>
+                        <div class="favorite-title">${title}</div>
+                        <div class="favorite-url">${url}</div>
                     </a>
                     <div class="favorite-category">${escapeHtml(translateCategory(fav.category))}</div>
                 </div>
                 <div class="favorite-actions">
-                    <button class="note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú'}">📝</button>
-                    <button class="delete-btn" title="Xóa">🗑️</button>
-                    <button class="preview-btn" title="Xem trước trang">👀</button>
+                    <button class="action-btn note-btn ${fav.note ? 'has-note' : ''}" title="${fav.note ? 'Chỉnh sửa' : 'Thêm ghi chú'}" data-action="note">📝</button>
+                    <button class="action-btn delete-btn" title="Xóa" data-action="delete">🗑️</button>
+                    <button class="action-btn preview-btn" title="Xem trước" data-action="preview">👀</button>
                 </div>
             </div>
             ${fav.note ? `<div class="favorite-note">${escapeHtml(fav.note)}</div>` : ''}
+            <div class="favorite-date">${formatDate(fav.dateAdded)}</div>
         `;
-        itemEl.draggable = favoritesToRender === null;
-        itemEl.dataset.id = fav.id;
+
         if (favoritesToRender === null) {
             addDragListeners(itemEl, index);
         } else {
             itemEl.style.cursor = 'default';
-            const dragHandle = itemEl.querySelector('.drag-handle');
-            if (dragHandle) dragHandle.style.display = 'none';
         }
-        itemEl.querySelector('.note-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            showNoteModal(fav.id, fav);
-        });
-        itemEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            showDeleteModal(fav.id, fav.title);
-        });
-        itemEl.querySelector('.preview-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            showPreviewModal(fav.id, fav.screenshot);
-        });
-        listEl.appendChild(itemEl);
+
+        fragment.appendChild(itemEl);
     });
+
+    listEl.innerHTML = '';
+    listEl.appendChild(fragment);
 }
+
+// Thêm event delegation cho các hành động trong danh sách
+document.getElementById('favoritesList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.action-btn');
+    if (!btn) return;
+
+    const item = btn.closest('.favorite-item');
+    const id = item.dataset.id;
+    const fav = favorites.find(f => f.id === id);
+    const action = btn.dataset.action;
+
+    e.stopPropagation();
+
+    if (action === 'note') showNoteModal(id, fav);
+    else if (action === 'delete') showDeleteModal(id, fav.title);
+    else if (action === 'preview') showPreviewModal(id, fav.screenshot);
+});
 
 function addDragListeners(itemEl, index) {
     itemEl.addEventListener('dragstart', (e) => {
@@ -558,9 +582,34 @@ function highlightText(text, searchTerm) {
     return escapedText.replace(regex, '<span class="search-highlight">$1</span>');
 }
 
+function updateDomainFilter() {
+    const domainFilter = document.getElementById('domainFilter');
+    if (!domainFilter) return;
+
+    const domains = [...new Set(favorites.map(fav => {
+        try {
+            return new URL(fav.url).hostname;
+        } catch (e) {
+            return '';
+        }
+    }).filter(d => d !== ''))].sort();
+
+    const currentValue = domainFilter.value;
+    domainFilter.innerHTML = '<option value="all">Tất cả domain</option>' +
+        domains.map(d => `<option value="${d}">${d}</option>`).join('');
+
+    if (currentValue !== 'all' && domains.includes(currentValue)) {
+        domainFilter.value = currentValue;
+    } else {
+        domainFilter.value = 'all';
+    }
+}
+
 function filterFavorites(searchTerm) {
     const categoryFilter = document.getElementById('categoryFilter').value;
-    if (!searchTerm.trim() && categoryFilter === 'all') {
+    const domainFilter = document.getElementById('domainFilter').value;
+
+    if (!searchTerm.trim() && categoryFilter === 'all' && domainFilter === 'all') {
         filteredFavorites = [];
         updateSearchInfo('');
         renderFavorites();
@@ -571,8 +620,19 @@ function filterFavorites(searchTerm) {
         const titleMatch = fav.title.toLowerCase().includes(term);
         const urlMatch = fav.url.toLowerCase().includes(term);
         const searchMatch = term ? (titleMatch || urlMatch) : true;
+
         const categoryMatch = categoryFilter === 'all' || fav.category === categoryFilter;
-        return searchMatch && categoryMatch;
+
+        let domainMatch = true;
+        if (domainFilter !== 'all') {
+            try {
+                domainMatch = new URL(fav.url).hostname === domainFilter;
+            } catch (e) {
+                domainMatch = false;
+            }
+        }
+
+        return searchMatch && categoryMatch && domainMatch;
     }).map(fav => ({
         ...fav,
         highlightedTitle: highlightText(fav.title, searchTerm),
@@ -629,6 +689,7 @@ function escapeHtml(unsafe) {
 }
 
 async function init() {
+    updateSyncUI();
     try {
         const permissionGranted = await chrome.permissions.contains({
             permissions: ['notifications']
@@ -643,11 +704,15 @@ async function init() {
             document.getElementById('currentUrl').textContent = currentTab.url;
             favorites = await getAllFavorites();
             updateAddButtonState();
+            updateDomainFilter();
             renderFavorites();
             document.getElementById('exportBtn').addEventListener('click', exportFavorites);
             document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
             document.getElementById('importFile').addEventListener('change', importFavorites);
             document.getElementById('categoryFilter').addEventListener('change', () => {
+                filterFavorites(document.getElementById('searchInput').value);
+            });
+            document.getElementById('domainFilter').addEventListener('change', () => {
                 filterFavorites(document.getElementById('searchInput').value);
             });
             document.getElementById('addCategoryBtn').addEventListener('click', () => {
@@ -668,6 +733,20 @@ async function init() {
             document.getElementById('closeManageCategoriesBtn').addEventListener('click', hideManageCategoriesModal);
             document.getElementById('manageCategoriesModal').addEventListener('click', (e) => {
                 if (e.target.id === 'manageCategoriesModal') hideManageCategoriesModal();
+            });
+
+            // Drive Sync Modal
+            document.getElementById('openDriveSyncBtn').addEventListener('click', showDriveSyncModal);
+            document.getElementById('closeDriveSyncBtn').addEventListener('click', hideDriveSyncModal);
+            document.getElementById('driveSyncModal').addEventListener('click', (e) => {
+                if (e.target.id === 'driveSyncModal') hideDriveSyncModal();
+            });
+
+            // Import/Export Modal
+            document.getElementById('openImportExportBtn').addEventListener('click', showImportExportModal);
+            document.getElementById('closeImportExportBtn').addEventListener('click', hideImportExportModal);
+            document.getElementById('importExportModal').addEventListener('click', (e) => {
+                if (e.target.id === 'importExportModal') hideImportExportModal();
             });
         } else {
             document.getElementById('currentUrl').textContent = 'Không thể lấy thông tin trang';
@@ -763,6 +842,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('deleteCategoryModal').addEventListener('click', (e) => {
         if (e.target.id === 'deleteCategoryModal') hideDeleteCategoryModal();
     });
+
+    // Google Drive event listeners
+    document.getElementById('loginGDriveBtn').addEventListener('click', async () => {
+        try {
+            await gDrive.getAuthToken(true);
+            await updateSyncUI();
+            showStatus('Kết nối Google Drive thành công!');
+        } catch (err) {
+            showStatus('Lỗi kết nối Google Drive', 'error');
+        }
+    });
+    document.getElementById('backupGDriveBtn').addEventListener('click', handleGDriveBackup);
+    document.getElementById('restoreGDriveBtn').addEventListener('click', handleGDriveRestore);
+    document.getElementById('logoutGDriveBtn').addEventListener('click', handleGDriveLogout);
+    document.getElementById('deleteGDriveDataBtn').addEventListener('click', handleGDriveDelete);
 });
 
 function updateCategoryOptions() {
@@ -789,6 +883,22 @@ function showManageCategoriesModal() {
 
 function hideManageCategoriesModal() {
     document.getElementById('manageCategoriesModal').classList.remove('show');
+}
+
+function showDriveSyncModal() {
+    document.getElementById('driveSyncModal').classList.add('show');
+}
+
+function hideDriveSyncModal() {
+    document.getElementById('driveSyncModal').classList.remove('show');
+}
+
+function showImportExportModal() {
+    document.getElementById('importExportModal').classList.add('show');
+}
+
+function hideImportExportModal() {
+    document.getElementById('importExportModal').classList.remove('show');
 }
 
 function renderCategoriesList() {
@@ -919,51 +1029,6 @@ function confirmDeleteCategory() {
     }
 }
 
-async function checkReminders() {
-    try {
-        const now = new Date();
-        const favorites = await getAllFavorites();
-        for (const fav of favorites) {
-            if (!fav.reminderTime) continue;
-            const reminderTime = new Date(fav.reminderTime);
-            const timeDiff = reminderTime - now;
-            // Nếu nhắc nhở đã quá hạn hoặc đến thời điểm, gửi thông báo
-            if (timeDiff <= 0 || (timeDiff <= 60 * 1000 && timeDiff > -60 * 1000)) {
-                const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
-                chrome.notifications.create(fav.id, {
-                    type: 'basic',
-                    iconUrl: 'icon48.png',
-                    title: "⏰ Nhắc nhở URL",
-                    message: shortTitle,
-                    priority: 2,
-                    requireInteraction: true // Thông báo không tự tắt
-                });
-                // Cập nhật reminderTime nếu có repeatType
-                if (fav.repeatType === 'hourly') {
-                    reminderTime.setHours(reminderTime.getHours() + 1);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                } else if (fav.repeatType === 'daily') {
-                    reminderTime.setDate(reminderTime.getDate() + 1);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                } else if (fav.repeatType === 'weekly') {
-                    reminderTime.setDate(reminderTime.getDate() + 7);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                } else if (fav.repeatType === 'monthly') {
-                    reminderTime.setMonth(reminderTime.getMonth() + 1);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                }
-                // Không xóa reminderTime cho repeatType 'none', để thông báo tiếp tục cho đến khi tắt
-            }
-        }
-    } catch (err) {
-        console.error('Error checking reminders:', err);
-    }
-}
-
 async function exportFavorites() {
     try {
         const favorites = await getAllFavorites();
@@ -1006,6 +1071,7 @@ async function importFavorites(event) {
                     tx.onerror = () => reject(tx.error);
                 });
                 favorites = await getAllFavorites();
+                updateDomainFilter();
                 renderFavorites();
                 updateAddButtonState();
                 showStatus('Đã nhập danh sách thành công!');
@@ -1022,13 +1088,156 @@ async function importFavorites(event) {
     }
 }
 
-// Background script logic
-function setupBackgroundReminders() {
-    setInterval(checkReminders, 60 * 1000);
-    checkReminders();
+/* Google Drive Sync Logic */
+async function updateSyncUI() {
+    const syncStatus = document.getElementById('syncStatus');
+    const loginBtn = document.getElementById('loginGDriveBtn');
+    const syncButtons = document.getElementById('syncButtons');
+    const deleteDataBtn = document.getElementById('deleteGDriveDataBtn');
+
+    if (!syncStatus || !loginBtn || !syncButtons) return;
+
+    try {
+        const token = await gDrive.getAuthToken(false);
+        if (token) {
+            syncStatus.textContent = 'Đã kết nối Google Drive';
+            syncStatus.style.color = '#2ecc71';
+            syncStatus.style.background = 'rgba(46, 204, 113, 0.1)';
+            loginBtn.style.display = 'none';
+            syncButtons.style.display = 'flex';
+            if (deleteDataBtn) deleteDataBtn.style.display = 'flex';
+        } else {
+            throw new Error('No token');
+        }
+    } catch (err) {
+        syncStatus.textContent = 'Chưa kết nối Google Drive';
+        syncStatus.style.color = '#4facfe';
+        syncStatus.style.background = 'rgba(79, 172, 254, 0.1)';
+        loginBtn.style.display = 'block';
+        syncButtons.style.display = 'none';
+        if (deleteDataBtn) deleteDataBtn.style.display = 'none';
+    }
 }
 
-// Call this in background.js
-if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
-    setupBackgroundReminders();
+async function handleGDriveBackup() {
+    const backupBtn = document.getElementById('backupGDriveBtn');
+    const originalText = backupBtn.textContent;
+    backupBtn.disabled = true;
+    backupBtn.innerHTML = 'Đang sao lưu...';
+
+    try {
+        const favorites = await getAllFavorites();
+        const customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+        const dataToBackup = {
+            favorites,
+            customCategories,
+            lastSynced: new Date().toISOString()
+        };
+        await gDrive.saveBackup(dataToBackup);
+        showStatus('Đã sao lưu lên Google Drive thành công!');
+    } catch (err) {
+        console.error('Backup error:', err);
+        showStatus('Lỗi khi sao lưu: ' + (err.message || 'Không xách định'), 'error');
+    } finally {
+        backupBtn.disabled = false;
+        backupBtn.textContent = originalText;
+    }
+}
+
+async function handleGDriveRestore() {
+    const restoreBtn = document.getElementById('restoreGDriveBtn');
+    const originalText = restoreBtn.textContent;
+    restoreBtn.disabled = true;
+    restoreBtn.innerHTML = 'Đang khôi phục...';
+
+    try {
+        const data = await gDrive.loadBackup();
+        if (!data) {
+            showStatus('Không tìm thấy bản sao lưu trên Google Drive!', 'error');
+            return;
+        }
+
+        if (confirm('Dữ liệu hiện tại sẽ bị ghi đè bởi bản sao lưu. Bạn có chắc chắn muốn tiếp tục?')) {
+            const db = await openDB();
+            const tx = db.transaction('favorites', 'readwrite');
+            const store = tx.objectStore('favorites');
+
+            await new Promise((resolve, reject) => {
+                const clearRequest = store.clear();
+                clearRequest.onsuccess = resolve;
+                clearRequest.onerror = () => reject(clearRequest.error);
+            });
+
+            for (const fav of data.favorites) {
+                await new Promise((resolve, reject) => {
+                    const putRequest = store.put(fav);
+                    putRequest.onsuccess = resolve;
+                    putRequest.onerror = () => reject(putRequest.error);
+                });
+            }
+
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+
+            if (data.customCategories) {
+                localStorage.setItem('customCategories', JSON.stringify(data.customCategories));
+                customCategories = data.customCategories;
+            }
+
+            favorites = await getAllFavorites();
+            updateCategoryOptions();
+            updateDomainFilter();
+            renderFavorites();
+
+            showStatus('Đã khôi phục dữ liệu từ Google Drive thành công!');
+        }
+    } catch (err) {
+        console.error('Restore error:', err);
+        showStatus('Lỗi khi khôi phục: ' + (err.message || 'Không xác định'), 'error');
+    } finally {
+        restoreBtn.disabled = false;
+        restoreBtn.textContent = originalText;
+    }
+}
+
+async function handleGDriveLogout() {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi Google Drive?')) {
+        try {
+            await gDrive.logout();
+            await updateSyncUI();
+            showStatus('Đã đăng xuất khỏi Google Drive');
+        } catch (err) {
+            console.error('Logout error:', err);
+            showStatus('Lỗi khi đăng xuất', 'error');
+        }
+    }
+}
+
+async function handleGDriveDelete() {
+    // Panel xác thực đầy đủ trước khi xóa
+    const confirmation = confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn tệp sao lưu trên Google Drive?\n\nHành động này không thể hoàn tác và dữ liệu đám mây của bạn sẽ bị mất hoàn toàn.');
+
+    if (confirmation) {
+        const secondConfirmation = confirm('Xác nhận lần cuối: Bạn thực sự muốn xóa dữ liệu trên Drive chứ?');
+
+        if (secondConfirmation) {
+            try {
+                const deleteBtn = document.getElementById('deleteGDriveDataBtn');
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.3';
+
+                await gDrive.deleteBackup();
+                showStatus('Đã xóa dữ liệu trên Google Drive thành công!');
+            } catch (err) {
+                console.error('Delete error:', err);
+                showStatus('Lỗi khi xóa dữ liệu trên Drive: ' + (err.message || 'Không xác định'), 'error');
+            } finally {
+                const deleteBtn = document.getElementById('deleteGDriveDataBtn');
+                deleteBtn.disabled = false;
+                deleteBtn.style.opacity = '';
+            }
+        }
+    }
 }

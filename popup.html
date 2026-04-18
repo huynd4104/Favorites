@@ -9,21 +9,68 @@
 </head>
 
 <body>
-    <button id="manageCategoriesBtn" class="modal-btn btn-save">🗂️ Quản lý danh mục</button>
 
     <div id="manageCategoriesModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">🗂️ Quản lý danh mục</div>
             <div class="modal-add-category">
                 <input type="text" id="newCategoryInput" placeholder="Nhập danh mục mới" class="select-input" />
-                <button id="addCategoryBtn" class="modal-btn btn-save">👌 Thêm</button>
+                <button id="addCategoryBtn" class="modal-btn btn-save">Thêm</button>
             </div>
             <div class="modal-body">
                 <div id="customCategoriesList"></div>
                 <div class="no-results" id="noCategoriesMessage" style="display: none;">Chưa có danh mục tùy chỉnh</div>
             </div>
             <div class="modal-actions">
-                <button id="closeManageCategoriesBtn" class="modal-btn btn-cancel">❌ Đóng</button>
+                <button id="closeManageCategoriesBtn" class="modal-btn btn-cancel">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Drive Sync Modal -->
+    <div id="driveSyncModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">☁️ Google Drive Sync</div>
+            <div class="modal-body">
+                <div class="sync-section">
+                    <div class="sync-header">
+                        <h4>Dữ liệu đám mây</h4>
+                        <button id="deleteGDriveDataBtn" class="icon-btn delete-cloud-btn"
+                            title="Xóa dữ liệu trên Drive" style="display: none;">🗑️</button>
+                    </div>
+                    <div class="sync-status" id="syncStatus">Chưa kết nối</div>
+                    <div class="sync-actions">
+                        <button id="loginGDriveBtn" class="modal-btn btn-save">Đăng nhập</button>
+                        <div id="syncButtons" style="display: none;">
+                            <button id="backupGDriveBtn" class="modal-btn btn-save">Sao lưu</button>
+                            <button id="restoreGDriveBtn" class="modal-btn btn-import">Khôi phục</button>
+                            <button id="logoutGDriveBtn" class="modal-btn btn-cancel">Đăng xuất</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeDriveSyncBtn" class="modal-btn btn-cancel">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import/Export Modal -->
+    <div id="importExportModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🌀 Nhập/Xuất Dữ liệu</div>
+            <div class="modal-body">
+                <div class="import-export-info">
+                    Xuất dữ liệu để dự phòng hoặc nhập dữ liệu từ file JSON đã lưu trước đó.
+                </div>
+                <div class="import-export-buttons-container">
+                    <button id="exportBtn" class="modal-btn btn-export">📤 Xuất file (.json)</button>
+                    <button id="importBtn" class="modal-btn btn-import">📥 Nhập file (.json)</button>
+                    <input type="file" id="importFile" accept=".json">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeImportExportBtn" class="modal-btn btn-cancel">Đóng</button>
             </div>
         </div>
     </div>
@@ -35,7 +82,6 @@
     </div>
 
     <div class="section">
-        <h4>💾 Danh sách Favorites</h4>
         <div class="search-container">
             <div class="search-input-wrapper">
                 <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm Tiêu đề hoặc URL...">
@@ -43,7 +89,7 @@
             </div>
             <div id="searchInfo" class="search-results-info" style="display: none;"></div>
         </div>
-        <div class="category-filter">
+        <div class="filters-row">
             <select id="categoryFilter" class="select-input">
                 <option value="all">Tất cả danh mục</option>
                 <optgroup id="customCategories" label="Danh mục tùy chỉnh"></optgroup>
@@ -53,6 +99,9 @@
                 <option value="Entertainment">Giải trí</option>
                 <option value="Other">Khác</option>
             </select>
+            <select id="domainFilter" class="select-input">
+                <option value="all">Tất cả domain</option>
+            </select>
         </div>
         <div id="favoritesList" class="favorites-list">
             <div class="empty-message">Chưa có URL nào được lưu</div>
@@ -61,10 +110,13 @@
         <div id="scrollDownIndicator" class="scroll-indicator scroll-down"></div>
     </div>
 
-    <div class="import-export-buttons">
-        <button id="exportBtn" class="modal-btn btn-export">📤 Xuất danh sách</button>
-        <button id="importBtn" class="modal-btn btn-import">📥 Nhập danh sách</button>
-        <input type="file" id="importFile" accept=".json">
+
+    <div class="section footer-actions">
+        <div class="top-actions">
+            <button id="manageCategoriesBtn" class="modal-btn btn-save" title="Danh mục">🗂️ Danh mục</button>
+            <button id="openDriveSyncBtn" class="modal-btn btn-save" title="Drive Sync">☁️ Drive Sync</button>
+            <button id="openImportExportBtn" class="modal-btn btn-save" title="Nhập/xuất">🛠 Nhập/xuất</button>
+        </div>
     </div>
 
     <div class="section developer-section">
@@ -106,7 +158,7 @@
             </div>
             <div class="modal-actions">
                 <button id="cancelDeleteCategoryBtn" class="modal-btn btn-cancel">
-                    <span class="btn-icon">❌</span> Hủy
+                    Hủy
                 </button>
                 <button id="confirmDeleteCategoryBtn" class="modal-btn modal-btn-delete">
                     <span class="btn-icon">🗑️</span> Xóa
@@ -178,8 +230,8 @@
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button id="cancelNoteBtn" class="modal-btn btn-cancel"><span class="btn-icon">❌</span> Hủy</button>
-                    <button id="saveNoteBtn" class="modal-btn btn-save"><span class="btn-icon">💾</span> Lưu ghi
+                    <button id="cancelNoteBtn" class="modal-btn btn-cancel">Hủy</button>
+                    <button id="saveNoteBtn" class="modal-btn btn-save">Lưu ghi
                         chú</button>
                 </div>
             </div>
@@ -200,6 +252,7 @@
         <button id="fullscreenCloseBtn" class="fullscreen-close-btn">✕</button>
     </div>
 
+    <script src="gdrive.js"></script>
     <script src="popup.js"></script>
 </body>
 

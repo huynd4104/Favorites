@@ -1,25 +1,39 @@
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --glass-background: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --text-color: #2d3436;
+    --text-muted: #636e72;
+    --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 5px 5px 0px 5px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 10px;
     width: 380px;
-    background: #f5f5f5;
+    background: #f0f2f5;
     margin: 0;
+    color: var(--text-color);
 }
 
 .section {
-    background: white;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--glass-background);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--glass-border);
 }
 
 .section h4 {
-    margin: 0 0 10px 0;
-    color: #333;
-    font-size: 14px;
-    font-weight: 600;
+    margin: 0 0 12px 0;
+    color: var(--text-color);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 /* Header styles */
@@ -51,41 +65,72 @@ body {
     margin-bottom: 10px;
     line-height: 1.4;
     background: white;
-    padding: 8px;
-    border-radius: 6px;
+    padding: 10px;
+    border-radius: 8px;
     border: 1px solid #e9ecef;
+    max-height: 80px;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.current-url:hover {
+    border-color: #4facfe;
+    box-shadow: inset 0 2px 6px rgba(79, 172, 254, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom scrollbar for current-url */
+.current-url::-webkit-scrollbar {
+    width: 5px;
+}
+
+.current-url::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.current-url::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.current-url::-webkit-scrollbar-thumb:hover {
+    background: #4facfe;
 }
 
 /* Button styles */
 .add-btn {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 16px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    background: linear-gradient(135deg, #4facfe 0%, #3ec5cc 100%);
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: var(--accent-gradient);
     color: white;
-    box-shadow: 0 4px 8px rgba(79, 172, 254, 0.3);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.01em;
 }
 
 .add-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(79, 172, 254, 0.4);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(79, 172, 254, 0.5);
 }
 
 .add-btn:active {
-    transform: translateY(0);
+    transform: translateY(-1px) scale(0.98);
 }
 
 .add-btn:disabled {
-    background: linear-gradient(135deg, #ccc, #999);
+    background: #dfe6e9;
+    color: #b2bec3;
     cursor: not-allowed;
     transform: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
 }
 
 /* Favorites list */
@@ -105,20 +150,22 @@ body {
 }
 
 .favorite-item {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border: 1px solid #e9ecef;
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 10px;
-    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
 .favorite-item:hover {
-    background: linear-gradient(135deg, #fff 0%, #e8f4f8 100%);
+    background: white;
+    transform: translateX(4px);
     border-color: #4facfe;
-    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.15);
+    box-shadow: 0 10px 20px rgba(79, 172, 254, 0.1);
 }
 
 .favorite-content {
@@ -897,9 +944,22 @@ input:checked+.slider:before {
     border-top: 1px solid #f0f0f0;
 }
 
+.top-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 0px;
+}
+
+.top-actions .modal-btn {
+    flex: 1;
+    white-space: nowrap;
+    padding: 10px 4px;
+    font-size: 10px;
+    border-radius: 12px;
+}
+
 #manageCategoriesBtn {
-    width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .modal-add-category {
@@ -1044,30 +1104,19 @@ input:checked+.slider:before {
     box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
 }
 
-.category-filter {
+.filters-row {
+    display: flex;
+    gap: 8px;
     margin-bottom: 12px;
 }
 
-.category-filter .select-input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 12px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    transition: all 0.3s ease;
-    outline: none;
-    box-sizing: border-box;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 8px center;
-    background-repeat: no-repeat;
-    background-size: 12px;
-    padding-right: 28px;
+.filters-row .select-input {
+    flex: 1;
+    min-width: 0;
+    /* Cho phép co giãn trong flexbox */
 }
 
-.category-filter .select-input:focus {
+.filters-row .select-input:focus {
     border-color: #4facfe;
     background: white;
     box-shadow: 0 0 12px rgba(79, 172, 254, 0.2);
@@ -1085,13 +1134,33 @@ input:checked+.slider:before {
     max-width: 100%;
 }
 
-.import-export-buttons {
+.favorite-date {
+    font-size: 9px;
+    color: #999;
+    position: absolute;
+    bottom: 6px;
+    right: 12px;
+    opacity: 0.7;
+    font-family: monospace;
+}
+
+.import-export-buttons,
+.import-export-buttons-container {
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
 }
 
-.import-export-buttons .modal-btn {
+.import-export-info {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 16px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.import-export-buttons .modal-btn,
+.import-export-buttons-container .modal-btn {
     flex: 1;
     padding: 8px 12px;
     font-size: 11px;
@@ -1104,27 +1173,33 @@ input:checked+.slider:before {
 }
 
 /* Nút Xuất - Xanh lá */
-.import-export-buttons .btn-export {
-    background: linear-gradient(135deg, #6cdc70 0%, #64a067 100%);
-    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+.import-export-buttons .modal-btn.btn-export,
+.import-export-buttons-container .modal-btn.btn-export {
+    background: linear-gradient(135deg, #6cdc70 0%, #64a067 100%) !important;
+    box-shadow: 0 4px 12px rgba(108, 220, 112, 0.3) !important;
+    color: white !important;
 }
 
-.import-export-buttons .btn-export:hover {
-    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+.import-export-buttons .modal-btn.btn-export:hover,
+.import-export-buttons-container .modal-btn.btn-export:hover {
+    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(108, 220, 112, 0.4) !important;
 }
 
 /* Nút Nhập - Xanh dương */
-.import-export-buttons .btn-import {
-    background: linear-gradient(135deg, #84b5de 0%, #1976D2 100%);
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+.import-export-buttons .modal-btn.btn-import,
+.import-export-buttons-container .modal-btn.btn-import {
+    background: linear-gradient(135deg, #84b5de 0%, #1976D2 100%) !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3) !important;
+    color: white !important;
 }
 
-.import-export-buttons .btn-import:hover {
-    background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
+.import-export-buttons .modal-btn.btn-import:hover,
+.import-export-buttons-container .modal-btn.btn-import:hover {
+    background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4) !important;
 }
 
 #importFile {
@@ -1265,4 +1340,99 @@ input:checked+.slider:before {
 .category-item .delete-category-btn:hover {
     transform: scale(1.1);
     box-shadow: 0 4px 8px rgba(255, 107, 107, 0.4);
+}
+
+.reminder-indicator {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 12px;
+    z-index: 5;
+}
+
+/* Google Drive Sync Section */
+.sync-section {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+    border: 1px dashed #4facfe;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.sync-status {
+    font-size: 11px;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: rgba(79, 172, 254, 0.1);
+    color: #4facfe;
+    font-weight: 600;
+}
+
+.sync-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#syncButtons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#syncButtons .modal-btn {
+    flex: 1;
+    min-width: 100px;
+}
+
+.sync-loading {
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.sync-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.sync-header h4 {
+    margin: 0 !important;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-cloud-btn {
+    color: #ff7675;
+    opacity: 0.6;
+}
+
+.delete-cloud-btn:hover {
+    opacity: 1;
+    background: rgba(255, 118, 117, 0.1);
+}
+
+.footer-actions {
+    padding: 8px 16px;
 }

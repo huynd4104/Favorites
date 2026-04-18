@@ -10,8 +10,17 @@
     "tabs",
     "tabCapture",
     "scripting",
-    "downloads"
+    "downloads",
+    "alarms",
+    "identity"
   ],
+  "oauth2": {
+    "client_id": "413276963599-sae4pjdc1sv2uh30jeab0ehoq1afvj28.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -21,8 +30,8 @@
   },
   "icons": {
     "16": "icon16.png",
-    "48": "icon16.png",
-    "128": "icon16.png"
+    "48": "icon48.png",
+    "128": "icon128.png"
   },
   "web_accessible_resources": [
     {

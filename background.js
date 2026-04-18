@@ -77,5 +77,17 @@ async function checkReminders() {
     }
 }
 
-setInterval(checkReminders, 60 * 1000);
-checkReminders(); // Chạy ngay lần đầu
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'checkReminders') {
+        checkReminders();
+    }
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
+    checkReminders();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+    chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
+});

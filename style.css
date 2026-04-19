@@ -1436,3 +1436,20 @@ input:checked+.slider:before {
 .footer-actions {
     padding: 8px 16px;
 }
+
+.auto-backup-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.toggle-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.toggle-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}

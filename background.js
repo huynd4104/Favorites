@@ -1,3 +1,5 @@
+importScripts('gdrive.js');
+
 async function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open("FavoritesDB", 3);
@@ -77,17 +79,61 @@ async function checkReminders() {
     }
 }
 
+async function performAutoBackup() {
+    try {
+        const { autoBackup } = await chrome.storage.local.get('autoBackup');
+        if (!autoBackup) return;
+
+        console.log('Starting auto backup...');
+
+        // Kiểm tra xem đã đăng nhập chưa
+        const token = await gDrive.getAuthToken(false).catch(() => null);
+        if (!token) {
+            console.log('Auto backup: Not logged in to Google Drive');
+            return;
+        }
+
+        const favorites = await getAllFavorites();
+        const customCategories = JSON.parse((await chrome.storage.local.get('customCategories')).customCategories || '[]');
+
+        const dataToBackup = {
+            favorites,
+            customCategories,
+            lastSynced: new Date().toISOString(),
+            autoSynced: true
+        };
+
+        await gDrive.saveBackup(dataToBackup);
+        console.log('Auto backup completed at:', new Date().toLocaleString());
+
+        // Có thể thông báo cho user nếu muốn, nhưng thường auto backup nên chạy ngầm
+    } catch (err) {
+        console.error('Auto backup failed:', err);
+    }
+}
+
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'checkReminders') {
         checkReminders();
+    } else if (alarm.name === 'autoBackup') {
+        performAutoBackup();
+    }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'startAutoBackupAlarm') {
+        chrome.alarms.create('autoBackup', { periodInMinutes: 60 });
+        performAutoBackup();
     }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
+    chrome.alarms.create('autoBackup', { periodInMinutes: 60 });
     checkReminders();
 });
 
 chrome.runtime.onStartup.addListener(() => {
     chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
+    chrome.alarms.create('autoBackup', { periodInMinutes: 60 });
 });

@@ -697,7 +697,8 @@ async function init() {
         if (!permissionGranted) {
             showStatus('Vui lòng cấp quyền thông báo để sử dụng nhắc nhở!', 'error');
         }
-        customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+        const storageData = await chrome.storage.local.get('customCategories');
+        customCategories = JSON.parse(storageData.customCategories || '[]');
         updateCategoryOptions();
         currentTab = await getCurrentTab();
         if (currentTab) {
@@ -715,7 +716,7 @@ async function init() {
             document.getElementById('domainFilter').addEventListener('change', () => {
                 filterFavorites(document.getElementById('searchInput').value);
             });
-            document.getElementById('addCategoryBtn').addEventListener('click', () => {
+            document.getElementById('addCategoryBtn').addEventListener('click', async () => {
                 const newCategoryInput = document.getElementById('newCategoryInput');
                 const newCategory = newCategoryInput.value.trim();
                 if (!newCategory || customCategories.includes(newCategory) || ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'].includes(newCategory)) {
@@ -723,7 +724,7 @@ async function init() {
                     return;
                 }
                 customCategories.push(newCategory);
-                localStorage.setItem('customCategories', JSON.stringify(customCategories));
+                await chrome.storage.local.set({ customCategories: JSON.stringify(customCategories) });
                 updateCategoryOptions();
                 renderCategoriesList();
                 newCategoryInput.value = '';
@@ -857,6 +858,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('restoreGDriveBtn').addEventListener('click', handleGDriveRestore);
     document.getElementById('logoutGDriveBtn').addEventListener('click', handleGDriveLogout);
     document.getElementById('deleteGDriveDataBtn').addEventListener('click', handleGDriveDelete);
+
+    document.getElementById('enableAutoBackup').addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        await chrome.storage.local.set({ autoBackup: enabled });
+        if (enabled) {
+            showStatus('Đã bật tự động sao lưu!');
+            // Kích hoạt alarm ngay lập tức qua background
+            chrome.runtime.sendMessage({ action: 'startAutoBackupAlarm' });
+        } else {
+            showStatus('Đã tắt tự động sao lưu');
+        }
+    });
 });
 
 function updateCategoryOptions() {
@@ -952,7 +965,7 @@ async function renameCategory(index, newName) {
     }
     const oldName = customCategories[index];
     customCategories[index] = newName;
-    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+    await chrome.storage.local.set({ customCategories: JSON.stringify(customCategories) });
     try {
         const db = await openDB();
         const tx = db.transaction('favorites', 'readwrite');
@@ -983,7 +996,7 @@ async function renameCategory(index, newName) {
 async function deleteCategory(index) {
     const category = customCategories[index];
     customCategories.splice(index, 1);
-    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+    await chrome.storage.local.set({ customCategories: JSON.stringify(customCategories) });
     try {
         const db = await openDB();
         const tx = db.transaction('favorites', 'readwrite');
@@ -1106,6 +1119,13 @@ async function updateSyncUI() {
             loginBtn.style.display = 'none';
             syncButtons.style.display = 'flex';
             if (deleteDataBtn) deleteDataBtn.style.display = 'flex';
+
+            const autoBackupOptions = document.getElementById('autoBackupOptions');
+            if (autoBackupOptions) {
+                autoBackupOptions.style.display = 'block';
+                const { autoBackup } = await chrome.storage.local.get('autoBackup');
+                document.getElementById('enableAutoBackup').checked = !!autoBackup;
+            }
         } else {
             throw new Error('No token');
         }
@@ -1116,6 +1136,11 @@ async function updateSyncUI() {
         loginBtn.style.display = 'block';
         syncButtons.style.display = 'none';
         if (deleteDataBtn) deleteDataBtn.style.display = 'none';
+
+        const autoBackupOptions = document.getElementById('autoBackupOptions');
+        if (autoBackupOptions) {
+            autoBackupOptions.style.display = 'none';
+        }
     }
 }
 
@@ -1127,7 +1152,8 @@ async function handleGDriveBackup() {
 
     try {
         const favorites = await getAllFavorites();
-        const customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+        const storageData = await chrome.storage.local.get('customCategories');
+        const customCategories = JSON.parse(storageData.customCategories || '[]');
         const dataToBackup = {
             favorites,
             customCategories,
@@ -1182,7 +1208,7 @@ async function handleGDriveRestore() {
             });
 
             if (data.customCategories) {
-                localStorage.setItem('customCategories', JSON.stringify(data.customCategories));
+                await chrome.storage.local.set({ customCategories: JSON.stringify(data.customCategories) });
                 customCategories = data.customCategories;
             }
 

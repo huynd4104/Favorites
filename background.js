@@ -84,17 +84,17 @@ async function performAutoBackup() {
         const { autoBackup } = await chrome.storage.local.get('autoBackup');
         if (!autoBackup) return;
 
-        console.log('Starting auto backup...');
+        console.log('Data changed, starting auto backup...');
 
-        // Kiểm tra xem đã đăng nhập chưa
         const token = await gDrive.getAuthToken(false).catch(() => null);
         if (!token) {
-            console.log('Auto backup: Not logged in to Google Drive');
+            console.log('Auto backup: Not logged in or token not available');
             return;
         }
 
         const favorites = await getAllFavorites();
-        const customCategories = JSON.parse((await chrome.storage.local.get('customCategories')).customCategories || '[]');
+        const storageData = await chrome.storage.local.get('customCategories');
+        const customCategories = JSON.parse(storageData.customCategories || '[]');
 
         const dataToBackup = {
             favorites,
@@ -103,10 +103,17 @@ async function performAutoBackup() {
             autoSynced: true
         };
 
-        await gDrive.saveBackup(dataToBackup);
+        await gDrive.saveBackup(dataToBackup, token);
         console.log('Auto backup completed at:', new Date().toLocaleString());
 
-        // Có thể thông báo cho user nếu muốn, nhưng thường auto backup nên chạy ngầm
+        // Thông báo phản hồi nhanh khi dữ liệu thay đổi
+        chrome.notifications.create('autoBackupSuccess', {
+            type: 'basic',
+            iconUrl: 'icon48.png',
+            title: "🔄 Drive Auto-sync",
+            message: "Đã cập nhật dữ liệu lên Google Drive",
+            priority: 1
+        });
     } catch (err) {
         console.error('Auto backup failed:', err);
     }
@@ -115,25 +122,20 @@ async function performAutoBackup() {
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'checkReminders') {
         checkReminders();
-    } else if (alarm.name === 'autoBackup') {
-        performAutoBackup();
     }
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'startAutoBackupAlarm') {
-        chrome.alarms.create('autoBackup', { periodInMinutes: 60 });
+    if (message.action === 'triggerAutoBackup') {
         performAutoBackup();
     }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
-    chrome.alarms.create('autoBackup', { periodInMinutes: 60 });
     checkReminders();
 });
 
 chrome.runtime.onStartup.addListener(() => {
     chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
-    chrome.alarms.create('autoBackup', { periodInMinutes: 60 });
 });

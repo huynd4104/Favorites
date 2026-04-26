@@ -65,8 +65,10 @@ class GDriveClient {
      * Save data to Google Drive
      * @param {Object} data - The data to save
      */
-    async saveBackup(data) {
-        const token = await this.getAuthToken(true);
+    async saveBackup(data, token = null) {
+        if (!token) {
+            token = await this.getAuthToken(true);
+        }
         const fileId = await this.findBackupFile(token);
 
         let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';

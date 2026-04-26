@@ -124,6 +124,7 @@ async function saveFavorite(url, title) {
         renderFavorites();
         showStatus("Đã thêm vào favorites!");
         updateAddButtonState();
+        checkAndTriggerBackup();
     } catch (err) {
         console.error('Add error:', err);
         showStatus("Lỗi khi lưu favorite!", "error");
@@ -138,6 +139,7 @@ async function deleteFavorite(id) {
         renderFavorites();
         showStatus("Đã xóa khỏi favorites!");
         updateAddButtonState();
+        checkAndTriggerBackup();
     } catch (err) {
         console.error('Delete error:', err);
         showStatus("Lỗi khi xóa favorite!", "error");
@@ -322,6 +324,7 @@ async function moveItem(fromIndex, toIndex) {
         });
         renderFavorites();
         showStatus('Đã thay đổi thứ tự!');
+        checkAndTriggerBackup();
     } catch (error) {
         console.error('Error saving new order:', error);
         showStatus('Lỗi khi lưu thứ tự mới!', 'error');
@@ -567,6 +570,7 @@ async function saveNote() {
             }
             renderFavorites();
             showStatus("Đã lưu ghi chú!");
+            checkAndTriggerBackup();
         } catch (e) {
             console.error("Note update error:", e);
             showStatus("Lỗi khi lưu ghi chú!", "error");
@@ -864,13 +868,19 @@ document.addEventListener('DOMContentLoaded', () => {
         await chrome.storage.local.set({ autoBackup: enabled });
         if (enabled) {
             showStatus('Đã bật tự động sao lưu!');
-            // Kích hoạt alarm ngay lập tức qua background
-            chrome.runtime.sendMessage({ action: 'startAutoBackupAlarm' });
+            checkAndTriggerBackup();
         } else {
             showStatus('Đã tắt tự động sao lưu');
         }
     });
 });
+
+async function checkAndTriggerBackup() {
+    const { autoBackup } = await chrome.storage.local.get('autoBackup');
+    if (autoBackup) {
+        chrome.runtime.sendMessage({ action: 'triggerAutoBackup' });
+    }
+}
 
 function updateCategoryOptions() {
     const categoryInput = document.getElementById('categoryInput');
@@ -986,6 +996,7 @@ async function renameCategory(index, newName) {
             renderFavorites();
             renderCategoriesList();
             showStatus('Đã đổi tên danh mục!');
+            checkAndTriggerBackup();
         };
     } catch (err) {
         console.error('Rename category error:', err);
@@ -1017,6 +1028,7 @@ async function deleteCategory(index) {
             renderFavorites();
             renderCategoriesList();
             showStatus('Đã xóa danh mục!');
+            checkAndTriggerBackup();
         };
     } catch (err) {
         console.error('Delete category error:', err);
@@ -1088,6 +1100,7 @@ async function importFavorites(event) {
                 renderFavorites();
                 updateAddButtonState();
                 showStatus('Đã nhập danh sách thành công!');
+                checkAndTriggerBackup();
             } catch (err) {
                 console.error('Import error:', err);
                 showStatus('Lỗi khi nhập danh sách!', 'error');

@@ -472,6 +472,37 @@ body {
     color: #666;
 }
 
+.open-dashboard-btn {
+    position: absolute;
+    right: -45px;
+    background: var(--primary-gradient);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.open-dashboard-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 45px;
+}
+
 .search-results-info {
     margin-top: 8px;
     font-size: 11px;

@@ -781,6 +781,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clearSearchBtn.addEventListener('click', clearSearch);
     }
 
+    const openDashboardBtn = document.getElementById('openDashboardBtn');
+    if (openDashboardBtn) {
+        openDashboardBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: 'dashboard.html' });
+        });
+    }
+
     const cancelBtn = document.getElementById('cancelBtn');
     const confirmBtn = document.getElementById('confirmBtn');
     const deleteModal = document.getElementById('deleteModal');

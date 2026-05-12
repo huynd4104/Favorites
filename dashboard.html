@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <title>Quản lý Favorites - URL Favorites</title>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1>⭐ Favorites Dashboard</h1>
+                <p>Quản lý toàn bộ danh sách URL đã lưu của bạn</p>
+            </div>
+            <div class="header-right">
+                <button id="bulkActionBtn" class="dashboard-btn btn-bulk">
+                    <span class="icon">🔘</span> Chọn
+                </button>
+                <button id="bulkDeleteBtn" class="dashboard-btn btn-delete-bulk" style="display: none;">
+                    <span class="icon">🗑️</span> Xóa hàng loạt (<span id="selectedCount">0</span>)
+                </button>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <div class="sidebar">
+                <div class="section search-section">
+                    <h4>🔍 Tìm kiếm & Lọc</h4>
+                    <div class="search-container">
+                        <div class="search-input-wrapper">
+                            <input type="text" id="searchInput" class="search-input" placeholder="Tìm tiêu đề, URL...">
+                            <button id="clearSearch" class="clear-search-btn" style="display: none;">✕</button>
+                        </div>
+                        <div id="searchInfo" class="search-results-info" style="display: none;"></div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="categoryFilter">📁 Danh mục</label>
+                        <select id="categoryFilter" class="select-input">
+                            <option value="all">Tất cả danh mục</option>
+                            <optgroup id="customCategories" label="Danh mục tùy chỉnh"></optgroup>
+                            <option value="Uncategorized">Chưa phân loại</option>
+                            <option value="Work">Công việc</option>
+                            <option value="Study">Học tập</option>
+                            <option value="Entertainment">Giải trí</option>
+                            <option value="Other">Khác</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="domainFilter">🌐 Domain</label>
+                        <select id="domainFilter" class="select-input">
+                            <option value="all">Tất cả domain</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section stats-section">
+                    <h4>📊 Thống kê</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Tổng cộng</span>
+                            <span id="totalCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Danh mục</span>
+                            <span id="categoryCount" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div id="favoritesList" class="dashboard-favorites-grid">
+                    <!-- Items will be rendered here -->
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Đang tải dữ liệu...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals (Reused from popup.html) -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🗑️ Xác nhận xóa</div>
+            <div class="modal-content">
+                Bạn có chắc muốn xóa URL <strong id="deleteItemTitle"></strong> khỏi favorites?
+            </div>
+            <div class="modal-actions">
+                <button id="cancelBtn" class="modal-btn modal-btn-cancel">Hủy</button>
+                <button id="confirmBtn" class="modal-btn modal-btn-delete">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulkDeleteConfirmModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🗑️ Xác nhận xóa hàng loạt</div>
+            <div class="modal-content">
+                Bạn có chắc muốn xóa <strong id="bulkDeleteCount"></strong> mục đã chọn? Hành động này không thể hoàn tác.
+            </div>
+            <div class="modal-actions">
+                <button id="cancelBulkDeleteBtn" class="modal-btn modal-btn-cancel">Hủy</button>
+                <button id="confirmBulkDeleteBtn" class="modal-btn modal-btn-delete">Xóa tất cả</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="noteModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-content-wrapper">
+                <div class="modal-header">
+                    <span class="modal-icon">📝</span>
+                    <h3>Ghi chú & Nhắc nhở</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label class="input-label" for="titleInput">📋 Tiêu đề</label>
+                        <input type="text" id="titleInput" placeholder="Nhập tiêu đề...">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="noteInput">💭 Nội dung ghi chú</label>
+                        <textarea id="noteInput" placeholder="Nhập ghi chú..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <div class="reminder-section">
+                            <div class="reminder-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="enableReminder">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-info">
+                                    <span class="toggle-title">⏰ Đặt lịch nhắc nhở</span>
+                                </div>
+                            </div>
+                            <div id="reminderOptions" class="reminder-options">
+                                <div class="reminder-inputs">
+                                    <div class="input-group">
+                                        <label class="input-label" for="reminderTime">
+                                            <span>🗓️</span> Thời gian nhắc nhở
+                                        </label>
+                                        <input type="datetime-local" id="reminderTime" class="datetime-input">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label" for="repeatType">
+                                            <span>🔄</span> Tần suất lặp lại
+                                        </label>
+                                        <select id="repeatType" class="select-input">
+                                            <option value="none">🚫 Không lặp</option>
+                                            <option value="hourly">⏰ Mỗi giờ</option>
+                                            <option value="daily">📅 Mỗi ngày</option>
+                                            <option value="weekly">📆 Mỗi tuần</option>
+                                            <option value="monthly">🗓️ Mỗi tháng</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="categoryInput">📌 Danh mục</label>
+                        <select id="categoryInput" class="select-input">
+                            <option value="Uncategorized">Chưa phân loại</option>
+                            <option value="Work">Công việc</option>
+                            <option value="Study">Học tập</option>
+                            <option value="Entertainment">Giải trí</option>
+                            <option value="Other">Khác</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="cancelNoteBtn" class="modal-btn btn-cancel">Hủy</button>
+                    <button id="saveNoteBtn" class="modal-btn btn-save">Lưu ghi chú</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="fullscreen-preview-overlay" style="display: none;">
+        <div class="preview-container">
+            <img id="previewImage" class="fullscreen-preview-image" style="display: none;">
+            <div id="previewLoading" class="preview-loading" style="color: white;">🔍 Đang tải...</div>
+            <div id="previewError" class="preview-error" style="display: none; color: white;">Không thể tải ảnh</div>
+        </div>
+        <div class="preview-controls">
+            <button id="zoomInBtn" class="control-btn" title="Phóng to">➕</button>
+            <button id="zoomOutBtn" class="control-btn" title="Thu nhỏ">➖</button>
+            <button id="resetZoomBtn" class="control-btn" title="Đặt lại">🔄</button>
+        </div>
+        <button id="closePreviewBtn" class="fullscreen-close-btn">✕</button>
+        <div class="preview-hint">Dùng con lăn chuột để thu phóng, kéo để di chuyển</div>
+    </div>
+
+    <div id="statusModal" class="status-modal">
+        <span id="statusMessage"></span>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

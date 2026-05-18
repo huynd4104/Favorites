@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhắc nhở URL</title>
+    <link rel="stylesheet" href="reminder.css">
+</head>
+<body>
+    <main class="reminder-shell">
+        <div class="reminder-header">
+            <div class="icon-frame">
+                <img src="icon48.png" alt="" class="reminder-icon">
+            </div>
+            <div>
+                <div class="reminder-label">Nhắc nhở URL</div>
+                <h1 id="title">Đang tải...</h1>
+            </div>
+        </div>
+
+        <section class="reminder-content" aria-label="Nội dung lời nhắc">
+            <div class="field">
+                <span class="field-label">Thời gian đã lên lịch</span>
+                <p id="scheduledTime" class="reminder-time"></p>
+            </div>
+
+            <div class="field">
+                <span class="field-label">Liên kết</span>
+                <p id="url" class="reminder-url"></p>
+            </div>
+
+            <div id="noteBlock" class="field note-field">
+                <span class="field-label">Ghi chú</span>
+                <p id="note" class="reminder-note"></p>
+            </div>
+        </section>
+
+        <div class="reminder-actions">
+            <button id="dismissBtn" class="btn btn-secondary" type="button">Đóng</button>
+            <button id="snoozeBtn" class="btn btn-secondary" type="button">Nhắc lại sau 5 phút</button>
+            <button id="openBtn" class="btn btn-primary" type="button">Mở URL</button>
+        </div>
+    </main>
+
+    <script src="reminder.js"></script>
+</body>
+</html>

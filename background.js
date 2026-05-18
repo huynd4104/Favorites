@@ -1,5 +1,12 @@
 importScripts('gdrive.js');
 
+const CHECK_REMINDERS_ALARM = 'checkReminders';
+const REMINDER_ALARM_PREFIX = 'reminder:';
+
+function getReminderAlarmName(id) {
+    return `${REMINDER_ALARM_PREFIX}${id}`;
+}
+
 async function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open("FavoritesDB", 3);
@@ -37,41 +44,183 @@ async function updateFavorite(fav) {
     });
 }
 
+async function clearAlarm(name) {
+    return new Promise((resolve) => {
+        chrome.alarms.clear(name, () => resolve());
+    });
+}
+
+function createAlarm(name, alarmInfo) {
+    chrome.alarms.create(name, alarmInfo);
+}
+
+function logReminderError(err) {
+    console.error('Reminder scheduling error:', err);
+}
+
+async function getNotificationPermissionLevel() {
+    return new Promise((resolve, reject) => {
+        chrome.notifications.getPermissionLevel((level) => {
+            const err = chrome.runtime.lastError;
+            if (err) {
+                reject(new Error(err.message));
+            } else {
+                resolve(level);
+            }
+        });
+    });
+}
+
+async function createNotification(id, options) {
+    return new Promise((resolve, reject) => {
+        chrome.notifications.create(id, options, (createdId) => {
+            const err = chrome.runtime.lastError;
+            if (err) {
+                reject(new Error(err.message));
+            } else {
+                resolve(createdId);
+            }
+        });
+    });
+}
+
+async function openReminderWindow(fav) {
+    return new Promise((resolve, reject) => {
+        const params = new URLSearchParams({
+            id: fav.id,
+            scheduledAt: fav.reminderTime || ''
+        });
+        const url = chrome.runtime.getURL(`reminder.html?${params.toString()}`);
+        chrome.windows.create({
+            url,
+            type: 'popup',
+            width: 480,
+            height: 360,
+            focused: true
+        }, (window) => {
+            const err = chrome.runtime.lastError;
+            if (err) {
+                reject(new Error(err.message));
+            } else {
+                resolve(window);
+            }
+        });
+    });
+}
+
+async function scheduleReminderAlarm(fav) {
+    const alarmName = getReminderAlarmName(fav.id);
+    await clearAlarm(alarmName);
+
+    if (!fav.reminderTime) return;
+
+    const reminderAt = new Date(fav.reminderTime).getTime();
+    if (Number.isNaN(reminderAt)) return;
+
+    createAlarm(alarmName, { when: Math.max(Date.now() + 1000, reminderAt) });
+}
+
+async function rescheduleAllReminderAlarms() {
+    const favorites = await getAllFavorites();
+    await Promise.all(favorites.map(scheduleReminderAlarm));
+}
+
+function getNextReminderTime(reminderTime, repeatType) {
+    if (!repeatType || repeatType === 'none') return null;
+
+    const next = new Date(reminderTime);
+    const now = Date.now();
+
+    do {
+        if (repeatType === 'hourly') {
+            next.setHours(next.getHours() + 1);
+        } else if (repeatType === 'daily') {
+            next.setDate(next.getDate() + 1);
+        } else if (repeatType === 'weekly') {
+            next.setDate(next.getDate() + 7);
+        } else if (repeatType === 'monthly') {
+            next.setMonth(next.getMonth() + 1);
+        } else {
+            return null;
+        }
+    } while (next.getTime() <= now);
+
+    return next.toISOString();
+}
+
+async function notifyFavorite(fav) {
+    const title = fav.title || fav.url || 'Không có tiêu đề';
+    const shortTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
+    const notificationPromise = getNotificationPermissionLevel()
+        .then((permissionLevel) => {
+            if (permissionLevel !== 'granted') {
+                throw new Error(`Notifications permission is ${permissionLevel}`);
+            }
+
+            return createNotification(fav.id, {
+                type: 'basic',
+                iconUrl: 'icon48.png',
+                title: shortTitle,
+                message: "Đến giờ xem lại URL này",
+                contextMessage: fav.url || '',
+                priority: 2,
+                isClickable: true,
+                requireInteraction: true
+            });
+        });
+    const results = await Promise.allSettled([
+        notificationPromise,
+        openReminderWindow(fav)
+    ]);
+
+    if (results.every(result => result.status === 'rejected')) {
+        throw new Error(results.map(result => result.reason.message).join('; '));
+    }
+
+    results
+        .filter(result => result.status === 'rejected')
+        .forEach(result => logReminderError(result.reason));
+
+    fav.reminderTime = getNextReminderTime(fav.reminderTime, fav.repeatType);
+    if (!fav.reminderTime) {
+        fav.repeatType = 'none';
+    }
+
+    await updateFavorite(fav);
+    await scheduleReminderAlarm(fav);
+}
+
+async function checkReminderById(id) {
+    const favorites = await getAllFavorites();
+    const fav = favorites.find(item => item.id === id);
+    if (!fav || !fav.reminderTime) return;
+
+    const reminderTime = new Date(fav.reminderTime);
+    if (Number.isNaN(reminderTime.getTime())) return;
+
+    if (reminderTime.getTime() <= Date.now()) {
+        await notifyFavorite(fav);
+    } else {
+        await scheduleReminderAlarm(fav);
+    }
+}
+
 async function checkReminders() {
     try {
-        const now = new Date();
         const favorites = await getAllFavorites();
         for (const fav of favorites) {
-            if (!fav.reminderTime) continue;
-            const reminderTime = new Date(fav.reminderTime);
-            const timeDiff = reminderTime - now;
-            if (timeDiff <= 0 || (timeDiff <= 60 * 1000 && timeDiff > -60 * 1000)) {
-                const shortTitle = fav.title.length > 30 ? fav.title.slice(0, 27) + "..." : fav.title;
-                chrome.notifications.create(fav.id, {
-                    type: 'basic',
-                    iconUrl: 'icon48.png',
-                    title: "⏰ Nhắc nhở URL",
-                    message: shortTitle,
-                    priority: 2,
-                    requireInteraction: true
-                });
-                if (fav.repeatType === 'hourly') {
-                    reminderTime.setHours(reminderTime.getHours() + 1);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                } else if (fav.repeatType === 'daily') {
-                    reminderTime.setDate(reminderTime.getDate() + 1);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                } else if (fav.repeatType === 'weekly') {
-                    reminderTime.setDate(reminderTime.getDate() + 7);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
-                } else if (fav.repeatType === 'monthly') {
-                    reminderTime.setMonth(reminderTime.getMonth() + 1);
-                    fav.reminderTime = reminderTime.toISOString();
-                    await updateFavorite(fav);
+            try {
+                if (!fav.reminderTime) continue;
+                const reminderTime = new Date(fav.reminderTime);
+                if (Number.isNaN(reminderTime.getTime())) continue;
+
+                if (reminderTime.getTime() <= Date.now()) {
+                    await notifyFavorite(fav);
+                } else {
+                    await scheduleReminderAlarm(fav);
                 }
+            } catch (err) {
+                logReminderError(err);
             }
         }
     } catch (err) {
@@ -120,22 +269,49 @@ async function performAutoBackup() {
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'checkReminders') {
+    if (alarm.name === CHECK_REMINDERS_ALARM) {
         checkReminders();
+    } else if (alarm.name.startsWith(REMINDER_ALARM_PREFIX)) {
+        checkReminderById(alarm.name.slice(REMINDER_ALARM_PREFIX.length)).catch(logReminderError);
     }
+});
+
+chrome.notifications.onClicked.addListener((notificationId) => {
+    getAllFavorites()
+        .then((favorites) => {
+            const fav = favorites.find(item => item.id === notificationId);
+            if (fav?.url) {
+                chrome.tabs.create({ url: fav.url });
+            }
+            chrome.notifications.clear(notificationId);
+        })
+        .catch(logReminderError);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'triggerAutoBackup') {
         performAutoBackup();
+    } else if (message.action === 'reminderUpdated') {
+        if (message.favorite) {
+            scheduleReminderAlarm(message.favorite)
+                .then(() => checkReminderById(message.favorite.id))
+                .catch(logReminderError);
+        } else if (message.id) {
+            clearAlarm(getReminderAlarmName(message.id)).catch(logReminderError);
+        }
     }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
+    createAlarm(CHECK_REMINDERS_ALARM, { periodInMinutes: 1 });
+    rescheduleAllReminderAlarms().catch(logReminderError);
     checkReminders();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-    chrome.alarms.create('checkReminders', { periodInMinutes: 1 });
+    createAlarm(CHECK_REMINDERS_ALARM, { periodInMinutes: 1 });
+    rescheduleAllReminderAlarms().catch(logReminderError);
 });
+
+createAlarm(CHECK_REMINDERS_ALARM, { periodInMinutes: 1 });
+rescheduleAllReminderAlarms().catch(logReminderError);

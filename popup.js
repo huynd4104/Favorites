@@ -65,6 +65,10 @@ async function updateFavorite(fav) {
     });
 }
 
+function notifyReminderUpdated(fav) {
+    chrome.runtime.sendMessage({ action: 'reminderUpdated', favorite: fav });
+}
+
 async function deleteFavoriteById(id) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -560,6 +564,7 @@ async function saveNote() {
         favorites[index].category = category;
         try {
             await updateFavorite(favorites[index]);
+            notifyReminderUpdated(favorites[index]);
             if (!reminderEnabled) {
                 // Xóa thông báo nếu bỏ chọn nhắc nhở
                 chrome.notifications.clear(favorites[index].id, (wasCleared) => {

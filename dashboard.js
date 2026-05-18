@@ -62,6 +62,10 @@ async function updateFavorite(fav) {
     });
 }
 
+function notifyReminderUpdated(fav) {
+    chrome.runtime.sendMessage({ action: 'reminderUpdated', favorite: fav });
+}
+
 // Add these variables at the top
 let currentScale = 1;
 let isDragging = false;
@@ -388,6 +392,7 @@ async function saveNote() {
 
         try {
             await updateFavorite(favorites[index]);
+            notifyReminderUpdated(favorites[index]);
             renderFavorites(filteredFavorites.length > 0 || document.getElementById('searchInput').value ? filteredFavorites : null);
             showStatus("Đã lưu ghi chú!");
         } catch (e) {

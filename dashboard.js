@@ -66,6 +66,7 @@ async function updateFavorite(fav) {
 let currentScale = 1;
 let isDragging = false;
 let startX, startY, translateX = 0, translateY = 0;
+let deleteCategoryIndex = null;
 
 // UI Logic
 function translateCategory(category) {
@@ -455,23 +456,83 @@ async function init() {
         customCategories = JSON.parse(storageData.customCategories || '[]');
 
         // Update Category Selects
-        const categoryFilter = document.getElementById('categoryFilter');
-        const customGroup = document.getElementById('customCategories');
-        const categoryInput = document.getElementById('categoryInput');
-
-        customGroup.innerHTML = customCategories.map(c => `<option value="${c}">${c}</option>`).join('');
-        // Add to note modal category select too
-        const baseOptions = `
-            <option value="Uncategorized">Chưa phân loại</option>
-            <option value="Work">Công việc</option>
-            <option value="Study">Học tập</option>
-            <option value="Entertainment">Giải trí</option>
-            <option value="Other">Khác</option>
-        `;
-        categoryInput.innerHTML = baseOptions + customCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+        updateCategoryOptions();
 
         updateDomainFilter();
         renderFavorites();
+
+        // New Event Listeners for Import/Export, Categories, Drive Sync
+        document.getElementById('exportBtn').addEventListener('click', exportFavorites);
+        document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+        document.getElementById('importFile').addEventListener('change', importFavorites);
+
+        document.getElementById('addCategoryBtn').addEventListener('click', async () => {
+            const newCategoryInput = document.getElementById('newCategoryInput');
+            const newCategory = newCategoryInput.value.trim();
+            if (!newCategory || customCategories.includes(newCategory) || ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'].includes(newCategory)) {
+                showStatus('Danh mục không hợp lệ hoặc đã tồn tại!', 'error');
+                return;
+            }
+            customCategories.push(newCategory);
+            await chrome.storage.local.set({ customCategories: JSON.stringify(customCategories) });
+            updateCategoryOptions();
+            renderCategoriesList();
+            newCategoryInput.value = '';
+            showStatus('Đã thêm danh mục mới!');
+            updateStats();
+        });
+
+        document.getElementById('manageCategoriesBtn').addEventListener('click', showManageCategoriesModal);
+        document.getElementById('closeManageCategoriesBtn').addEventListener('click', hideManageCategoriesModal);
+        document.getElementById('manageCategoriesModal').addEventListener('click', (e) => {
+            if (e.target.id === 'manageCategoriesModal') hideManageCategoriesModal();
+        });
+
+        document.getElementById('openDriveSyncBtn').addEventListener('click', showDriveSyncModal);
+        document.getElementById('closeDriveSyncBtn').addEventListener('click', hideDriveSyncModal);
+        document.getElementById('driveSyncModal').addEventListener('click', (e) => {
+            if (e.target.id === 'driveSyncModal') hideDriveSyncModal();
+        });
+
+        document.getElementById('openImportExportBtn').addEventListener('click', showImportExportModal);
+        document.getElementById('closeImportExportBtn').addEventListener('click', hideImportExportModal);
+        document.getElementById('importExportModal').addEventListener('click', (e) => {
+            if (e.target.id === 'importExportModal') hideImportExportModal();
+        });
+
+        document.getElementById('cancelDeleteCategoryBtn').addEventListener('click', hideDeleteCategoryModal);
+        document.getElementById('confirmDeleteCategoryBtn').addEventListener('click', confirmDeleteCategory);
+        document.getElementById('deleteCategoryModal').addEventListener('click', (e) => {
+            if (e.target.id === 'deleteCategoryModal') hideDeleteCategoryModal();
+        });
+
+        // Google Drive event listeners
+        document.getElementById('loginGDriveBtn').addEventListener('click', async () => {
+            try {
+                await gDrive.getAuthToken(true);
+                await updateSyncUI();
+                showStatus('Kết nối Google Drive thành công!');
+            } catch (err) {
+                showStatus('Lỗi kết nối Google Drive', 'error');
+            }
+        });
+        document.getElementById('backupGDriveBtn').addEventListener('click', handleGDriveBackup);
+        document.getElementById('restoreGDriveBtn').addEventListener('click', handleGDriveRestore);
+        document.getElementById('logoutGDriveBtn').addEventListener('click', handleGDriveLogout);
+        document.getElementById('deleteGDriveDataBtn').addEventListener('click', handleGDriveDelete);
+
+        document.getElementById('enableAutoBackup').addEventListener('change', async (e) => {
+            const enabled = e.target.checked;
+            await chrome.storage.local.set({ autoBackup: enabled });
+            if (enabled) {
+                showStatus('Đã bật tự động sao lưu!');
+                checkAndTriggerBackup();
+            } else {
+                showStatus('Đã tắt tự động sao lưu');
+            }
+        });
+
+        updateSyncUI();
 
         // Event Listeners
         document.getElementById('bulkActionBtn').addEventListener('click', toggleBulkMode);
@@ -581,3 +642,407 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// New features functions
+async function checkAndTriggerBackup() {
+    const { autoBackup } = await chrome.storage.local.get('autoBackup');
+    if (autoBackup) {
+        chrome.runtime.sendMessage({ action: 'triggerAutoBackup' });
+    }
+}
+
+function updateCategoryOptions() {
+    const customGroup = document.getElementById('customCategories');
+    const categoryInput = document.getElementById('categoryInput');
+    const categoryFilter = document.getElementById('categoryFilter'); // added for completeness but logic handles customGroup
+
+    if (customGroup) customGroup.innerHTML = customCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    
+    if (categoryInput) {
+        const baseOptions = `
+            <option value="Uncategorized">Chưa phân loại</option>
+            <option value="Work">Công việc</option>
+            <option value="Study">Học tập</option>
+            <option value="Entertainment">Giải trí</option>
+            <option value="Other">Khác</option>
+        `;
+        categoryInput.innerHTML = baseOptions + customCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }
+}
+
+function showManageCategoriesModal() {
+    renderCategoriesList();
+    document.getElementById('manageCategoriesModal').classList.add('show');
+}
+
+function hideManageCategoriesModal() {
+    document.getElementById('manageCategoriesModal').classList.remove('show');
+}
+
+function showDriveSyncModal() {
+    document.getElementById('driveSyncModal').classList.add('show');
+}
+
+function hideDriveSyncModal() {
+    document.getElementById('driveSyncModal').classList.remove('show');
+}
+
+function showImportExportModal() {
+    document.getElementById('importExportModal').classList.add('show');
+}
+
+function hideImportExportModal() {
+    document.getElementById('importExportModal').classList.remove('show');
+}
+
+function renderCategoriesList() {
+    const listEl = document.getElementById('customCategoriesList');
+    const noCategoriesMessage = document.getElementById('noCategoriesMessage');
+    if (customCategories.length === 0) {
+        listEl.innerHTML = '';
+        noCategoriesMessage.style.display = 'block';
+        return;
+    }
+    noCategoriesMessage.style.display = 'none';
+    const categoryCounts = {};
+    const predefinedCategories = ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'];
+    predefinedCategories.forEach(cat => {
+        categoryCounts[cat] = favorites.filter(fav => fav.category === cat).length;
+    });
+    customCategories.forEach(cat => {
+        categoryCounts[cat] = favorites.filter(fav => fav.category === cat).length;
+    });
+    listEl.innerHTML = customCategories.map((cat, index) => `
+        <div class="category-item" style="display:flex; justify-content:space-between; align-items:center; padding:5px 0;">
+            <input type="text" value="${escapeHtml(cat)}" data-index="${index}" class="category-name-input" style="flex-grow:1; margin-right:10px; padding:5px; border-radius:4px; border:1px solid #ddd;"/>
+            <span class="category-count" style="margin-right:10px;">(${categoryCounts[cat]})</span>
+            <button class="rename-btn" title="Đổi tên" data-index="${index}" style="margin-right:5px; background:none; border:none; cursor:pointer;">✏️</button>
+            <button class="delete-category-btn" title="Xóa" data-index="${index}" style="background:none; border:none; cursor:pointer;">🗑️</button>
+        </div>
+    `).join('');
+    document.querySelectorAll('.rename-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            const input = e.target.parentElement.querySelector('.category-name-input');
+            renameCategory(index, input.value.trim());
+        });
+    });
+    document.querySelectorAll('.delete-category-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            showDeleteCategoryModal(index, customCategories[index]);
+        });
+    });
+}
+
+async function renameCategory(index, newName) {
+    if (!newName || customCategories.includes(newName) || ['Uncategorized', 'Work', 'Study', 'Entertainment', 'Other'].includes(newName)) {
+        showStatus('Tên danh mục không hợp lệ hoặc đã tồn tại!', 'error');
+        return;
+    }
+    const oldName = customCategories[index];
+    customCategories[index] = newName;
+    await chrome.storage.local.set({ customCategories: JSON.stringify(customCategories) });
+    try {
+        const db = await openDB();
+        const tx = db.transaction('favorites', 'readwrite');
+        const store = tx.objectStore('favorites');
+        const request = store.getAll();
+        request.onsuccess = async () => {
+            const favoritesToUpdate = request.result.filter(fav => fav.category === oldName);
+            for (const fav of favoritesToUpdate) {
+                fav.category = newName;
+                await store.put(fav);
+            }
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+            favorites = await getAllFavorites();
+            updateCategoryOptions();
+            renderFavorites(filteredFavorites.length > 0 || document.getElementById('searchInput').value ? filteredFavorites : null);
+            renderCategoriesList();
+            updateStats();
+            showStatus('Đã đổi tên danh mục!');
+            checkAndTriggerBackup();
+        };
+    } catch (err) {
+        console.error('Rename category error:', err);
+        showStatus('Lỗi khi đổi tên danh mục!', 'error');
+    }
+}
+
+async function deleteCategory(index) {
+    const category = customCategories[index];
+    customCategories.splice(index, 1);
+    await chrome.storage.local.set({ customCategories: JSON.stringify(customCategories) });
+    try {
+        const db = await openDB();
+        const tx = db.transaction('favorites', 'readwrite');
+        const store = tx.objectStore('favorites');
+        const request = store.getAll();
+        request.onsuccess = async () => {
+            const favoritesToUpdate = request.result.filter(fav => fav.category === category);
+            for (const fav of favoritesToUpdate) {
+                fav.category = 'Uncategorized';
+                await store.put(fav);
+            }
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+            favorites = await getAllFavorites();
+            updateCategoryOptions();
+            renderFavorites(filteredFavorites.length > 0 || document.getElementById('searchInput').value ? filteredFavorites : null);
+            renderCategoriesList();
+            updateStats();
+            showStatus('Đã xóa danh mục!');
+            checkAndTriggerBackup();
+        };
+    } catch (err) {
+        console.error('Delete category error:', err);
+        showStatus('Lỗi khi xóa danh mục!', 'error');
+    }
+}
+
+function showDeleteCategoryModal(index, category) {
+    deleteCategoryIndex = index;
+    document.getElementById('deleteCategoryName').textContent = category;
+    document.getElementById('deleteCategoryModal').classList.add('show');
+}
+
+function hideDeleteCategoryModal() {
+    document.getElementById('deleteCategoryModal').classList.remove('show');
+    deleteCategoryIndex = null;
+}
+
+function confirmDeleteCategory() {
+    if (deleteCategoryIndex !== null) {
+        deleteCategory(deleteCategoryIndex);
+        hideDeleteCategoryModal();
+    }
+}
+
+async function exportFavorites() {
+    try {
+        const favoritesData = await getAllFavorites();
+        const dataStr = JSON.stringify(favoritesData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `favorites_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showStatus('Đã xuất danh sách thành công!');
+    } catch (err) {
+        console.error('Export error:', err);
+        showStatus('Lỗi khi xuất danh sách!', 'error');
+    }
+}
+
+async function importFavorites(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const importedFavorites = JSON.parse(e.target.result);
+                if (!Array.isArray(importedFavorites)) throw new Error('Dữ liệu không hợp lệ');
+                const db = await openDB();
+                const tx = db.transaction('favorites', 'readwrite');
+                const store = tx.objectStore('favorites');
+                for (const fav of importedFavorites) {
+                    if (fav.id && fav.url) {
+                        await store.put(fav);
+                    }
+                }
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                favorites = await getAllFavorites();
+                updateDomainFilter();
+                renderFavorites();
+                updateStats();
+                showStatus('Đã nhập danh sách thành công!');
+                checkAndTriggerBackup();
+            } catch (err) {
+                console.error('Import error:', err);
+                showStatus('Lỗi khi nhập danh sách!', 'error');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    } catch (err) {
+        console.error('Import error:', err);
+        showStatus('Lỗi khi nhập danh sách!', 'error');
+    }
+}
+
+async function updateSyncUI() {
+    const syncStatus = document.getElementById('syncStatus');
+    const loginBtn = document.getElementById('loginGDriveBtn');
+    const syncButtons = document.getElementById('syncButtons');
+    const deleteDataBtn = document.getElementById('deleteGDriveDataBtn');
+
+    if (!syncStatus || !loginBtn || !syncButtons) return;
+
+    try {
+        const token = await gDrive.getAuthToken(false);
+        if (token) {
+            syncStatus.textContent = 'Đã kết nối Google Drive';
+            syncStatus.style.color = '#2ecc71';
+            syncStatus.style.background = 'rgba(46, 204, 113, 0.1)';
+            loginBtn.style.display = 'none';
+            syncButtons.style.display = 'flex';
+            if (deleteDataBtn) deleteDataBtn.style.display = 'flex';
+
+            const autoBackupOptions = document.getElementById('autoBackupOptions');
+            if (autoBackupOptions) {
+                autoBackupOptions.style.display = 'block';
+                const { autoBackup } = await chrome.storage.local.get('autoBackup');
+                document.getElementById('enableAutoBackup').checked = !!autoBackup;
+            }
+        } else {
+            throw new Error('No token');
+        }
+    } catch (err) {
+        syncStatus.textContent = 'Chưa kết nối Google Drive';
+        syncStatus.style.color = '#4facfe';
+        syncStatus.style.background = 'rgba(79, 172, 254, 0.1)';
+        loginBtn.style.display = 'block';
+        syncButtons.style.display = 'none';
+        if (deleteDataBtn) deleteDataBtn.style.display = 'none';
+
+        const autoBackupOptions = document.getElementById('autoBackupOptions');
+        if (autoBackupOptions) {
+            autoBackupOptions.style.display = 'none';
+        }
+    }
+}
+
+async function handleGDriveBackup() {
+    const backupBtn = document.getElementById('backupGDriveBtn');
+    const originalText = backupBtn.textContent;
+    backupBtn.disabled = true;
+    backupBtn.innerHTML = 'Đang sao lưu...';
+
+    try {
+        const favoritesData = await getAllFavorites();
+        const storageData = await chrome.storage.local.get('customCategories');
+        const customCategoriesData = JSON.parse(storageData.customCategories || '[]');
+        const dataToBackup = {
+            favorites: favoritesData,
+            customCategories: customCategoriesData,
+            lastSynced: new Date().toISOString()
+        };
+        await gDrive.saveBackup(dataToBackup);
+        showStatus('Đã sao lưu lên Google Drive thành công!');
+    } catch (err) {
+        console.error('Backup error:', err);
+        showStatus('Lỗi khi sao lưu: ' + (err.message || 'Không xác định'), 'error');
+    } finally {
+        backupBtn.disabled = false;
+        backupBtn.textContent = originalText;
+    }
+}
+
+async function handleGDriveRestore() {
+    const restoreBtn = document.getElementById('restoreGDriveBtn');
+    const originalText = restoreBtn.textContent;
+    restoreBtn.disabled = true;
+    restoreBtn.innerHTML = 'Đang khôi phục...';
+
+    try {
+        const data = await gDrive.loadBackup();
+        if (!data) {
+            showStatus('Không tìm thấy bản sao lưu trên Google Drive!', 'error');
+            return;
+        }
+
+        if (confirm('Dữ liệu hiện tại sẽ bị ghi đè bởi bản sao lưu. Bạn có chắc chắn muốn tiếp tục?')) {
+            const db = await openDB();
+            const tx = db.transaction('favorites', 'readwrite');
+            const store = tx.objectStore('favorites');
+
+            await new Promise((resolve, reject) => {
+                const clearRequest = store.clear();
+                clearRequest.onsuccess = resolve;
+                clearRequest.onerror = () => reject(clearRequest.error);
+            });
+
+            for (const fav of data.favorites) {
+                await new Promise((resolve, reject) => {
+                    const putRequest = store.put(fav);
+                    putRequest.onsuccess = resolve;
+                    putRequest.onerror = () => reject(putRequest.error);
+                });
+            }
+
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+
+            if (data.customCategories) {
+                await chrome.storage.local.set({ customCategories: JSON.stringify(data.customCategories) });
+                customCategories = data.customCategories;
+            }
+
+            favorites = await getAllFavorites();
+            updateCategoryOptions();
+            updateDomainFilter();
+            renderFavorites();
+            updateStats();
+
+            showStatus('Đã khôi phục dữ liệu từ Google Drive thành công!');
+        }
+    } catch (err) {
+        console.error('Restore error:', err);
+        showStatus('Lỗi khi khôi phục: ' + (err.message || 'Không xác định'), 'error');
+    } finally {
+        restoreBtn.disabled = false;
+        restoreBtn.textContent = originalText;
+    }
+}
+
+async function handleGDriveLogout() {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi Google Drive?')) {
+        try {
+            await gDrive.logout();
+            await updateSyncUI();
+            showStatus('Đã đăng xuất khỏi Google Drive');
+        } catch (err) {
+            console.error('Logout error:', err);
+            showStatus('Lỗi khi đăng xuất', 'error');
+        }
+    }
+}
+
+async function handleGDriveDelete() {
+    const confirmation = confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn tệp sao lưu trên Google Drive?\\n\\nHành động này không thể hoàn tác và dữ liệu đám mây của bạn sẽ bị mất hoàn toàn.');
+    if (confirmation) {
+        const secondConfirmation = confirm('Xác nhận lần cuối: Bạn thực sự muốn xóa dữ liệu trên Drive chứ?');
+        if (secondConfirmation) {
+            try {
+                const deleteBtn = document.getElementById('deleteGDriveDataBtn');
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.3';
+
+                await gDrive.deleteBackup();
+                showStatus('Đã xóa dữ liệu trên Google Drive thành công!');
+            } catch (err) {
+                console.error('Delete error:', err);
+                showStatus('Lỗi khi xóa dữ liệu trên Drive: ' + (err.message || 'Không xác định'), 'error');
+            } finally {
+                const deleteBtn = document.getElementById('deleteGDriveDataBtn');
+                deleteBtn.disabled = false;
+                deleteBtn.style.opacity = '';
+            }
+        }
+    }
+}

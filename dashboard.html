@@ -17,6 +17,15 @@
                 <p>Quản lý toàn bộ danh sách URL đã lưu của bạn</p>
             </div>
             <div class="header-right">
+                <button id="manageCategoriesBtn" class="dashboard-btn" title="Quản lý danh mục">
+                    <span class="icon">🗂️</span> Danh mục
+                </button>
+                <button id="openDriveSyncBtn" class="dashboard-btn" title="Drive Sync">
+                    <span class="icon">☁️</span> Drive Sync
+                </button>
+                <button id="openImportExportBtn" class="dashboard-btn" title="Nhập/xuất dữ liệu">
+                    <span class="icon">🛠</span> Nhập/xuất
+                </button>
                 <button id="bulkActionBtn" class="dashboard-btn btn-bulk">
                     <span class="icon">🔘</span> Chọn
                 </button>
@@ -113,6 +122,95 @@
         </div>
     </div>
 
+    <!-- Modals for Categories, Drive Sync, Import/Export -->
+    <div id="manageCategoriesModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🗂️ Quản lý danh mục</div>
+            <div class="modal-add-category">
+                <input type="text" id="newCategoryInput" placeholder="Nhập danh mục mới" class="select-input" />
+                <button id="addCategoryBtn" class="modal-btn btn-save">Thêm</button>
+            </div>
+            <div class="modal-body" style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+                <div id="customCategoriesList"></div>
+                <div class="no-results" id="noCategoriesMessage" style="display: none; text-align: center; margin-top: 10px;">Chưa có danh mục tùy chỉnh</div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeManageCategoriesBtn" class="modal-btn btn-cancel">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteCategoryModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🗑️ Xác nhận xóa danh mục</div>
+            <div class="modal-content">
+                Bạn có chắc muốn xóa danh mục <strong id="deleteCategoryName"></strong>?
+                Tất cả URL trong danh mục này sẽ được chuyển về "Chưa phân loại".
+            </div>
+            <div class="modal-actions">
+                <button id="cancelDeleteCategoryBtn" class="modal-btn btn-cancel">Hủy</button>
+                <button id="confirmDeleteCategoryBtn" class="modal-btn modal-btn-delete">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="driveSyncModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">☁️ Google Drive Sync</div>
+            <div class="modal-body">
+                <div class="sync-section">
+                    <div class="sync-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0;">Dữ liệu đám mây</h4>
+                        <button id="deleteGDriveDataBtn" class="icon-btn delete-cloud-btn" title="Xóa dữ liệu trên Drive" style="display: none; background: none; border: none; font-size: 1.2rem; cursor: pointer;">🗑️</button>
+                    </div>
+                    <div class="sync-status" id="syncStatus" style="padding: 10px; border-radius: 8px; text-align: center; font-weight: 500; margin-bottom: 15px;">Chưa kết nối</div>
+                    <div class="sync-actions" style="display: flex; gap: 10px; flex-direction: column;">
+                        <button id="loginGDriveBtn" class="modal-btn btn-save">Đăng nhập</button>
+                        <div id="syncButtons" style="display: none; flex-direction: column; gap: 10px;">
+                            <button id="backupGDriveBtn" class="modal-btn btn-save">Sao lưu lên Drive</button>
+                            <button id="restoreGDriveBtn" class="modal-btn btn-import" style="background: #e67e22; color: white;">Khôi phục từ Drive</button>
+                            <button id="logoutGDriveBtn" class="modal-btn btn-cancel">Đăng xuất</button>
+                        </div>
+                    </div>
+                    <div id="autoBackupOptions" class="auto-backup-section" style="display: none; margin-top: 15px;">
+                        <div class="reminder-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="enableAutoBackup">
+                                <span class="slider"></span>
+                            </label>
+                            <div class="toggle-info">
+                                <span class="toggle-title">Tự động sao lưu khi dữ liệu thay đổi</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeDriveSyncBtn" class="modal-btn btn-cancel">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="importExportModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">🌀 Nhập/Xuất Dữ liệu</div>
+            <div class="modal-body">
+                <div class="import-export-info" style="margin-bottom: 15px; font-size: 0.95rem; color: var(--text-color);">
+                    Xuất dữ liệu để dự phòng hoặc nhập dữ liệu từ file JSON đã lưu trước đó.
+                </div>
+                <div class="import-export-buttons-container" style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="exportBtn" class="modal-btn btn-save">📤 Xuất file (.json)</button>
+                    <button id="importBtn" class="modal-btn btn-import" style="background: #e67e22; color: white;">📥 Nhập file (.json)</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none;">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeImportExportBtn" class="modal-btn btn-cancel">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+
     <div id="noteModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-content-wrapper">
@@ -202,6 +300,7 @@
         <span id="statusMessage"></span>
     </div>
 
+    <script src="gdrive.js"></script>
     <script src="dashboard.js"></script>
 </body>
 

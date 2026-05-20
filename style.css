@@ -1488,3 +1488,51 @@ input:checked+.slider:before {
     font-weight: 600;
     color: #333;
 }
+
+/* Google Drive User Profile Card */
+.gdrive-user-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+    border: 1px solid #e1e8ed;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+}
+
+.gdrive-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.gdrive-user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.gdrive-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2c3e50;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gdrive-email {
+    font-size: 10px;
+    color: #7f8c8d;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

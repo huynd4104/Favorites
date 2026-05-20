@@ -131,6 +131,34 @@ class GDriveClient {
     }
 
     /**
+     * Get user profile information (avatar, display name, email) from Google Drive
+     * @param {string} [token=null] - Access token
+     * @returns {Promise<Object|null>} User info
+     */
+    async getUserInfo(token = null) {
+        if (!token) {
+            token = await this.getAuthToken(false);
+        }
+        if (!token) return null;
+
+        const response = await fetch(
+            'https://www.googleapis.com/drive/v3/about?fields=user',
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch user profile from Google Drive');
+        }
+
+        const result = await response.json();
+        return result.user;
+    }
+
+    /**
      * Delete the backup file in Google Drive
      */
     async deleteBackup() {

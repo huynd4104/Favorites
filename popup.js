@@ -1132,6 +1132,10 @@ async function updateSyncUI() {
     const loginBtn = document.getElementById('loginGDriveBtn');
     const syncButtons = document.getElementById('syncButtons');
     const deleteDataBtn = document.getElementById('deleteGDriveDataBtn');
+    const userContainer = document.getElementById('gdriveUserContainer');
+    const gdriveAvatar = document.getElementById('gdriveAvatar');
+    const gdriveName = document.getElementById('gdriveName');
+    const gdriveEmail = document.getElementById('gdriveEmail');
 
     if (!syncStatus || !loginBtn || !syncButtons) return;
 
@@ -1144,6 +1148,31 @@ async function updateSyncUI() {
             loginBtn.style.display = 'none';
             syncButtons.style.display = 'flex';
             if (deleteDataBtn) deleteDataBtn.style.display = 'flex';
+
+            // Show user profile info
+            if (userContainer) {
+                userContainer.style.display = 'flex';
+                if (gdriveName) gdriveName.textContent = 'Đang tải...';
+                if (gdriveEmail) gdriveEmail.textContent = '';
+                
+                try {
+                    const userInfo = await gDrive.getUserInfo(token);
+                    if (userInfo) {
+                        if (gdriveAvatar) {
+                            gdriveAvatar.src = userInfo.photoLink || 'avatar.png';
+                        }
+                        if (gdriveName) {
+                            gdriveName.textContent = userInfo.displayName || 'Tài khoản Google';
+                        }
+                        if (gdriveEmail) {
+                            gdriveEmail.textContent = userInfo.emailAddress || '';
+                        }
+                    }
+                } catch (userErr) {
+                    console.error('Failed to load user info:', userErr);
+                    if (gdriveName) gdriveName.textContent = 'Lỗi tải thông tin';
+                }
+            }
 
             const autoBackupOptions = document.getElementById('autoBackupOptions');
             if (autoBackupOptions) {
@@ -1161,6 +1190,13 @@ async function updateSyncUI() {
         loginBtn.style.display = 'block';
         syncButtons.style.display = 'none';
         if (deleteDataBtn) deleteDataBtn.style.display = 'none';
+
+        if (userContainer) {
+            userContainer.style.display = 'none';
+        }
+        if (gdriveAvatar) gdriveAvatar.src = '';
+        if (gdriveName) gdriveName.textContent = '';
+        if (gdriveEmail) gdriveEmail.textContent = '';
 
         const autoBackupOptions = document.getElementById('autoBackupOptions');
         if (autoBackupOptions) {

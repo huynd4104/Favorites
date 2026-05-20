@@ -164,6 +164,13 @@
                         <button id="deleteGDriveDataBtn" class="icon-btn delete-cloud-btn" title="Xóa dữ liệu trên Drive" style="display: none; background: none; border: none; font-size: 1.2rem; cursor: pointer;">🗑️</button>
                     </div>
                     <div class="sync-status" id="syncStatus" style="padding: 10px; border-radius: 8px; text-align: center; font-weight: 500; margin-bottom: 15px;">Chưa kết nối</div>
+                    <div id="gdriveUserContainer" class="gdrive-user-container" style="display: none;">
+                        <img id="gdriveAvatar" class="gdrive-avatar" src="avatar.png" alt="Avatar">
+                        <div class="gdrive-user-info">
+                            <div id="gdriveName" class="gdrive-name">Đang tải...</div>
+                            <div id="gdriveEmail" class="gdrive-email"></div>
+                        </div>
+                    </div>
                     <div class="sync-actions" style="display: flex; gap: 10px; flex-direction: column;">
                         <button id="loginGDriveBtn" class="modal-btn btn-save">Đăng nhập</button>
                         <div id="syncButtons" style="display: none; flex-direction: column; gap: 10px;">

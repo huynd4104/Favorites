@@ -96,7 +96,14 @@ async function init() {
 
     document.getElementById("title").textContent = currentFavorite.title || currentFavorite.url || "Không có tiêu đề";
     document.getElementById("scheduledTime").textContent = formatScheduledTime(scheduledAt || currentFavorite.reminderTime);
-    document.getElementById("url").textContent = currentFavorite.url || "";
+    const rawUrl = currentFavorite.url || "";
+    let displayUrl = rawUrl;
+    if (rawUrl.length > 60) {
+        const half = 28; // (60 - 3) / 2 rounded
+        displayUrl = rawUrl.substring(0, half) + "..." + rawUrl.substring(rawUrl.length - half);
+    }
+    document.getElementById("url").textContent = displayUrl;
+    document.getElementById("url").title = rawUrl; // Thêm tooltip để xem full URL
     const note = currentFavorite.note || "";
     document.getElementById("note").textContent = note;
     document.getElementById("noteBlock").classList.toggle("is-empty", !note.trim());

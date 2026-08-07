@@ -8,13 +8,39 @@
     --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
+* {
+    box-sizing: border-box;
+}
+
+html {
+    width: 380px;
+    margin: 0 auto;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     padding: 10px;
     width: 380px;
+    max-width: 380px !important;
+    box-sizing: border-box;
     background: #f0f2f5;
     margin: 0;
     color: var(--text-color);
+    overflow-x: hidden;
+}
+
+/* Force 380px width on all containers */
+body,
+.section,
+.modal-overlay,
+.modal-container {
+    width: 100% !important;
+    max-width: 380px !important;
+}
+
+body > * {
+    width: 100%;
+    max-width: 100%;
 }
 
 .section {
@@ -440,7 +466,7 @@ body {
     padding: 10px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 13px;
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     transition: all 0.3s ease;
     outline: none;
@@ -538,8 +564,8 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(6px);
     display: flex;
@@ -552,6 +578,8 @@ body {
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-overlay::-webkit-scrollbar {
@@ -567,13 +595,14 @@ body {
 .modal {
     background: white;
     border-radius: 12px;
-    padding: 24px;
+    padding: 16px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-    max-width: 340px;
-    width: 80%;
+    width: 380px;
+    max-width: 100%;
+    box-sizing: border-box;
     transform: scale(0.8);
     transition: transform 0.3s ease;
-    max-height: calc(100vh - 40px);
+    max-height: 80vh;
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -591,10 +620,10 @@ body {
 
 .modal-header,
 .modal h3 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: #333;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     text-align: center;
 }
 
@@ -602,7 +631,7 @@ body {
     font-size: 13px;
     color: #666;
     line-height: 1.5;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     text-align: center;
 }
 
@@ -628,19 +657,22 @@ body {
 
 .modal-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .modal-btn {
-    padding: 10px 20px;
+    padding: 9px 16px;
     border: none;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 80px;
+    min-width: auto;
+    flex: 1;
+    min-width: 70px;
 }
 
 .modal-btn-cancel,
@@ -801,38 +833,38 @@ body {
 }
 
 .modal-body {
-    margin-bottom: 16px;
-}
-
-.input-group {
     margin-bottom: 12px;
 }
 
+.input-group {
+    margin-bottom: 10px;
+}
+
 .input-label {
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    color: #333;
-    margin-top: 10px;
-    margin-bottom: 6px;
     display: flex;
     align-items: center;
     gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    margin-top: 8px;
+    margin-bottom: 5px;
 }
 
 #noteInput {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border: 1px solid #e9ecef;
     border-radius: 8px;
-    font-size: 11px;
+    font-size: 13px;
     font-family: inherit;
     resize: vertical;
+    margin-bottom: 10px;
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     transition: all 0.3s ease;
     outline: none;
     box-sizing: border-box;
-    min-height: 60px;
+    min-height: 70px;
 }
 
 #noteInput:focus {
@@ -845,15 +877,15 @@ body {
     background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
     border: 1px solid #e6f0ff;
     border-radius: 10px;
-    padding: 12px;
-    margin-top: 12px;
+    padding: 10px;
+    margin-top: 10px;
 }
 
 .reminder-toggle {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .toggle-switch {
@@ -913,7 +945,7 @@ input:checked+.slider:before {
     font-weight: 600;
     color: #333;
     font-size: 11px;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
 }
 
 .reminder-options {
@@ -939,7 +971,7 @@ input:checked+.slider:before {
 
 .reminder-inputs {
     display: grid;
-    gap: 10px;
+    gap: 8px;
 }
 
 .datetime-input,
@@ -948,7 +980,7 @@ input:checked+.slider:before {
     padding: 8px 10px;
     border: 1px solid #e9ecef;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 12px;
     background: white;
     transition: all 0.3s ease;
     outline: none;
@@ -981,16 +1013,16 @@ input:checked+.slider:before {
 
 .top-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 0px;
 }
 
 .top-actions .modal-btn {
     flex: 1;
     white-space: nowrap;
-    padding: 10px 4px;
-    font-size: 10px;
-    border-radius: 12px;
+    padding: 8px 10px;
+    font-size: 11px;
+    border-radius: 8px;
 }
 
 #manageCategoriesBtn {
@@ -999,8 +1031,8 @@ input:checked+.slider:before {
 
 .modal-add-category {
     display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 10px;
 }
 
 .modal-btn {
@@ -1051,14 +1083,15 @@ input:checked+.slider:before {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: 1001;
     background: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    font-size: 14px;
-    max-width: 90%;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 12px;
+    max-width: calc(380px - 20px);
     text-align: center;
+    box-sizing: border-box;
 }
 
 .status-modal.success {
@@ -1078,12 +1111,13 @@ input:checked+.slider:before {
 }
 
 .preview-modal {
-    max-width: 340px;
-    width: 90%;
+    width: 380px;
+    max-width: 100%;
     padding: 12px;
     position: relative;
     max-height: 80vh;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .preview-image {

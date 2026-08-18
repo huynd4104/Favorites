@@ -1,0 +1,571 @@
+/* ==========================================================================
+   popup.css — browser-action popup surface only
+   Loaded after theme.css. Owns every dimension of the 380px popup.
+   ========================================================================== */
+
+/* Chrome sizes an action popup from the document's preferred width, so this
+   MUST be an absolute length on both html and body. Any %, min-width:0, or
+   media query that relaxes it feeds back on itself and the popup collapses. */
+html {
+    width: 380px;
+    min-width: 380px;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    width: 380px;
+    min-width: 380px;
+    max-width: 380px;
+    min-height: 460px;
+    /* Chrome caps action popups at 600px tall; stay just inside it so the
+       list scrolls internally instead of the whole document. */
+    max-height: 596px;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+/* --------------------------------------------------------------------------
+   App bar
+   -------------------------------------------------------------------------- */
+.app-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.app-logo {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--r-xs);
+    object-fit: cover;
+}
+
+.app-bar .search-input-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+/* The "open dashboard" button. Previously this was absolutely positioned at
+   right: -45px inside the search wrapper, which pushed it into a hand-made
+   45px gutter and clipped at any other width. It is now a normal flex child. */
+.app-bar-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+}
+
+.app-bar-btn.is-primary {
+    background: var(--primary-gradient);
+    color: var(--brand-contrast);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.app-bar-btn.is-primary:hover {
+    background: var(--primary-gradient-hover);
+    color: var(--brand-contrast);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+/* --------------------------------------------------------------------------
+   Shell
+   -------------------------------------------------------------------------- */
+.app-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    overflow: hidden;
+}
+
+.section {
+    padding: 10px;
+    background: var(--glass-background);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-soft);
+}
+
+.section h4 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Current page card
+   -------------------------------------------------------------------------- */
+/* No card chrome here any more — the section is just the primary action, so
+   the whole panel that used to show the current URL becomes list space. */
+.current-page-section {
+    flex-shrink: 0;
+}
+
+/* Kept in the DOM for popup.js, never shown. */
+.current-url {
+    display: none;
+}
+
+.add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: var(--accent-gradient);
+    color: var(--brand-contrast);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.35);
+    transition: background-color var(--dur) var(--ease),
+                box-shadow var(--dur) var(--ease),
+                transform var(--dur-fast) var(--ease);
+}
+
+.add-btn:hover {
+    background: var(--accent-gradient-hover);
+    box-shadow: 0 6px 16px rgba(79, 172, 254, 0.45);
+}
+
+.add-btn:active {
+    transform: translateY(1px);
+}
+
+.add-btn:disabled {
+    background: var(--surface-3);
+    color: var(--text-subtle);
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   Search + filters
+   -------------------------------------------------------------------------- */
+.list-section {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper::before {
+    content: "🔍";
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.search-input {
+    padding-left: 32px;
+    padding-right: 34px;
+    background: var(--surface-2);
+}
+
+.search-input:focus {
+    background: var(--surface);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: var(--r-full);
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.clear-search-btn:hover {
+    background: var(--danger-bg);
+    color: var(--danger-fg);
+}
+
+#searchInfo {
+    flex-shrink: 0;
+    margin: 0 0 8px;
+}
+
+.filters-row {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-bottom: 8px;
+}
+
+.filters-row .select-input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 28px 8px 10px;
+    font-size: 12px;
+    background-color: var(--surface-2);
+}
+
+/* --------------------------------------------------------------------------
+   Favorites list
+   -------------------------------------------------------------------------- */
+.favorites-list {
+    flex: 1;
+    min-height: 120px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Deliberately chromeless: drag-to-reorder reads nicer without a bar. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin: 0 -2px;
+    padding: 0 2px;
+}
+
+.favorites-list::-webkit-scrollbar {
+    display: none;
+}
+
+.favorite-item {
+    position: relative;
+    padding: 8px 9px 8px 22px;
+    margin-bottom: 6px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: var(--r-sm);
+    cursor: default;
+    user-select: none;
+    animation: itemIn var(--dur-slow) var(--ease-out) backwards;
+    transition: background-color var(--dur) var(--ease),
+                border-color var(--dur) var(--ease),
+                box-shadow var(--dur) var(--ease);
+}
+
+.favorite-item:last-child {
+    margin-bottom: 0;
+}
+
+.favorite-item:hover {
+    background: #ffffff;
+    border-color: var(--sky-500);
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.15);
+}
+
+@keyframes itemIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: none; }
+}
+
+.favorite-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.favorite-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.favorite-link {
+    display: block;
+    color: inherit;
+}
+
+.favorite-title,
+.favorite-url,
+.favorite-category {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.favorite-title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text);
+}
+
+.favorite-link:hover .favorite-title {
+    color: var(--brand-text);
+}
+
+.favorite-url {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-subtle);
+}
+
+/* Capped so it never runs under the absolutely-placed date. */
+.favorite-category {
+    display: inline-block;
+    max-width: calc(100% - 72px);
+    margin-top: 5px;
+    padding: 1px 8px;
+    border-radius: var(--r-full);
+    background: var(--brand-50);
+    color: var(--brand-text);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.favorite-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.favorite-actions .action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+}
+
+.favorite-note {
+    margin-top: 7px;
+    margin-right: 66px;
+    padding: 6px 8px;
+    border-radius: var(--r-xs);
+    border-left: 3px solid var(--warn-500);
+    background: var(--warn-bg);
+    color: var(--warn-fg);
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.favorite-date {
+    position: absolute;
+    right: 9px;
+    bottom: 8px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    line-height: 1;
+    color: var(--text-subtle);
+}
+
+.reminder-indicator {
+    position: absolute;
+    top: 8px;
+    left: 6px;
+    font-size: 10px;
+    line-height: 1;
+}
+
+/* Drag & drop */
+.drag-handle {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-subtle);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: -2px;
+    cursor: grab;
+    opacity: 0;
+    transition: opacity var(--dur) var(--ease);
+}
+
+.favorite-item:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.favorite-item.dragging {
+    opacity: 0.5;
+    border-color: var(--sky-500);
+    box-shadow: var(--shadow-md);
+}
+
+.favorite-item.drag-over {
+    box-shadow: inset 0 3px 0 -1px var(--sky-500);
+    border-color: var(--sky-500);
+}
+
+.drag-placeholder {
+    height: 3px;
+    margin: 6px 0;
+    border-radius: var(--r-full);
+    background: var(--accent-gradient);
+}
+
+.scroll-indicator {
+    position: absolute;
+    right: 4px;
+    width: 3px;
+    height: 22px;
+    border-radius: var(--r-full);
+    background: var(--accent-gradient);
+    opacity: 0;
+    z-index: 10;
+    pointer-events: none;
+    transition: opacity var(--dur) var(--ease);
+}
+
+.scroll-indicator.show {
+    opacity: 0.8;
+}
+
+.scroll-indicator.scroll-up {
+    top: 4px;
+}
+
+.scroll-indicator.scroll-down {
+    bottom: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.footer-actions {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+}
+
+.top-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.top-actions .modal-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 6px;
+    font-size: 11.5px;
+    background: var(--primary-gradient);
+    color: var(--brand-contrast);
+    border-color: transparent;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.top-actions .modal-btn:hover {
+    background: var(--primary-gradient-hover);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+/* --------------------------------------------------------------------------
+   Popup-scoped modal sizing
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+    padding: 12px;
+}
+
+.modal-container,
+.modal {
+    max-width: 356px;
+    padding: 16px;
+    max-height: calc(100vh - 24px);
+}
+
+.modal-actions .modal-btn {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Screenshot preview */
+.preview-modal {
+    position: relative;
+    padding: 12px;
+}
+
+.preview-image {
+    display: block;
+    width: 100%;
+    max-height: 60vh;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    object-fit: contain;
+}
+
+.magnify-btn {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: var(--r-xs);
+    background: var(--primary-gradient);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.magnify-btn:hover {
+    background: var(--primary-gradient-hover);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+/* Legacy in-popup fullscreen overlay markup (the live one is injected into
+   the host page by popup.js via fullscreen.css). */
+.fullscreen-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.fullscreen-preview-image {
+    max-width: 92%;
+    max-height: 92%;
+    border-radius: var(--r-sm);
+}
+
+.fullscreen-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+}

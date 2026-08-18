@@ -3,16 +3,79 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=380px, user-scalable=no, viewport-fit=cover">
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=380, initial-scale=1">
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="popup.css">
     <title>URL Favorites</title>
 </head>
 
 <body>
 
+    <!-- Search lives in the app bar rather than on its own row: that reclaims a
+         full ~45px band for the favourites list. -->
+    <header class="app-bar">
+        <img class="app-logo" src="icon48.png" alt="URL Favorites">
+        <div class="search-input-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="Tìm tiêu đề hoặc URL...">
+            <button id="clearSearch" class="clear-search-btn" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm"
+                style="display: none;">✕</button>
+        </div>
+        <button id="openDashboardBtn" class="icon-btn app-bar-btn is-primary" title="Mở trang quản lý"
+            aria-label="Mở trang quản lý">🖥️</button>
+    </header>
+
+    <main class="app-body">
+
+        <section class="current-page-section">
+            <!-- popup.js writes the active tab's URL into #currentUrl
+                 (popup.js:714 and :762), so the node has to stay in the DOM.
+                 It is hidden instead of removed, which frees the panel's
+                 height for more favourites without touching any JS. -->
+            <div class="current-url" id="currentUrl">Đang tải...</div>
+            <button id="addBtn" class="add-btn">⭐ Thêm vào Favorites</button>
+        </section>
+
+        <section class="section list-section">
+            <div id="searchInfo" class="search-results-info" style="display: none;"></div>
+
+            <div class="filters-row">
+                <select id="categoryFilter" class="select-input" aria-label="Lọc theo danh mục">
+                    <option value="all">Tất cả danh mục</option>
+                    <optgroup id="customCategories" label="Danh mục tùy chỉnh"></optgroup>
+                    <option value="Uncategorized">Chưa phân loại</option>
+                    <option value="Work">Công việc</option>
+                    <option value="Study">Học tập</option>
+                    <option value="Entertainment">Giải trí</option>
+                    <option value="Other">Khác</option>
+                </select>
+                <select id="domainFilter" class="select-input" aria-label="Lọc theo domain">
+                    <option value="all">Tất cả domain</option>
+                </select>
+            </div>
+
+            <div id="favoritesList" class="favorites-list">
+                <div class="empty-message">Chưa có URL nào được lưu</div>
+            </div>
+
+            <div id="scrollUpIndicator" class="scroll-indicator scroll-up"></div>
+            <div id="scrollDownIndicator" class="scroll-indicator scroll-down"></div>
+        </section>
+
+    </main>
+
+    <footer class="footer-actions">
+        <div class="top-actions">
+            <button id="manageCategoriesBtn" class="modal-btn" title="Quản lý danh mục">🗂️ Danh mục</button>
+            <button id="openDriveSyncBtn" class="modal-btn" title="Đồng bộ Google Drive">☁️ Drive Sync</button>
+            <button id="openImportExportBtn" class="modal-btn" title="Nhập/xuất dữ liệu">🛠 Nhập/xuất</button>
+        </div>
+    </footer>
+
+    <!-- ===================== Modals ===================== -->
+
     <div id="manageCategoriesModal" class="modal-overlay">
         <div class="modal-container">
-            <div class="modal-header">🗂️ Quản lý danh mục</div>
+            <div class="modal-header"><span class="modal-icon">🗂️</span> Quản lý danh mục</div>
             <div class="modal-add-category">
                 <input type="text" id="newCategoryInput" placeholder="Nhập danh mục mới" class="select-input" />
                 <button id="addCategoryBtn" class="modal-btn btn-save">Thêm</button>
@@ -27,10 +90,9 @@
         </div>
     </div>
 
-    <!-- Google Drive Sync Modal -->
     <div id="driveSyncModal" class="modal-overlay">
         <div class="modal-container">
-            <div class="modal-header">☁️ Google Drive Sync</div>
+            <div class="modal-header"><span class="modal-icon">☁️</span> Google Drive Sync</div>
             <div class="modal-body">
                 <div class="sync-section">
                     <div class="sync-header">
@@ -73,17 +135,16 @@
         </div>
     </div>
 
-    <!-- Import/Export Modal -->
     <div id="importExportModal" class="modal-overlay">
         <div class="modal-container">
-            <div class="modal-header">🌀 Nhập/Xuất Dữ liệu</div>
+            <div class="modal-header"><span class="modal-icon">🌀</span> Nhập/Xuất dữ liệu</div>
             <div class="modal-body">
                 <div class="import-export-info">
                     Xuất dữ liệu để dự phòng hoặc nhập dữ liệu từ file JSON đã lưu trước đó.
                 </div>
                 <div class="import-export-buttons-container">
-                    <button id="exportBtn" class="modal-btn btn-export">📤 Xuất file (.json)</button>
-                    <button id="importBtn" class="modal-btn btn-import">📥 Nhập file (.json)</button>
+                    <button id="exportBtn" class="modal-btn btn-export">📤 Xuất file</button>
+                    <button id="importBtn" class="modal-btn btn-import">📥 Nhập file</button>
                     <input type="file" id="importFile" accept=".json">
                 </div>
             </div>
@@ -93,72 +154,9 @@
         </div>
     </div>
 
-    <div class="section current-page-section">
-        <fieldset class="current-url-wrapper">
-            <legend class="current-url-title">📋 Trang hiện tại</legend>
-            <div class="current-url" id="currentUrl">Đang tải...</div>
-        </fieldset>
-        <button id="addBtn" class="add-btn">⭐ Thêm vào Favorites</button>
-    </div>
-
-    <div class="section">
-        <div class="search-container">
-            <div class="search-input-wrapper">
-                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm Tiêu đề hoặc URL...">
-                <button id="clearSearch" class="clear-search-btn" title="Xóa tìm kiếm" style="display: none;">✕</button>
-                <button id="openDashboardBtn" class="open-dashboard-btn" title="Mở trang quản lý">🖥️</button>
-            </div>
-            <div id="searchInfo" class="search-results-info" style="display: none;"></div>
-        </div>
-        <div class="filters-row">
-            <select id="categoryFilter" class="select-input">
-                <option value="all">Tất cả danh mục</option>
-                <optgroup id="customCategories" label="Danh mục tùy chỉnh"></optgroup>
-                <option value="Uncategorized">Chưa phân loại</option>
-                <option value="Work">Công việc</option>
-                <option value="Study">Học tập</option>
-                <option value="Entertainment">Giải trí</option>
-                <option value="Other">Khác</option>
-            </select>
-            <select id="domainFilter" class="select-input">
-                <option value="all">Tất cả domain</option>
-            </select>
-        </div>
-        <div id="favoritesList" class="favorites-list">
-            <div class="empty-message">Chưa có URL nào được lưu</div>
-        </div>
-        <div id="scrollUpIndicator" class="scroll-indicator scroll-up"></div>
-        <div id="scrollDownIndicator" class="scroll-indicator scroll-down"></div>
-    </div>
-
-
-    <div class="section footer-actions">
-        <div class="top-actions">
-            <button id="manageCategoriesBtn" class="modal-btn btn-save" title="Danh mục">🗂️ Danh mục</button>
-            <button id="openDriveSyncBtn" class="modal-btn btn-save" title="Drive Sync">☁️ Drive Sync</button>
-            <button id="openImportExportBtn" class="modal-btn btn-save" title="Nhập/xuất">🛠 Nhập/xuất</button>
-        </div>
-    </div>
-
-    <!--
-    <div class="section developer-section">
-        <div class="developer-info">
-            <img class="developer-avatar" src="avatar.png" alt="Avatar">
-            <div class="developer-text">
-                <div class="developer-label">Developed by</div>
-                <div class="developer-name">Rin - HuyNguyen</div>
-            </div>
-        </div>
-    </div>
-    -->
-
-    <div id="statusModal" class="status-modal">
-        <span id="statusMessage"></span>
-    </div>
-
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-container">
-            <div class="modal-header">🗑️ Xác nhận xóa</div>
+            <div class="modal-header"><span class="modal-icon">🗑️</span> Xác nhận xóa</div>
             <div class="modal-content">
                 Bạn có chắc muốn xóa URL <strong id="deleteItemTitle"></strong> khỏi favorites?
             </div>
@@ -180,9 +178,7 @@
                 Tất cả URL trong danh mục này sẽ được chuyển về "Chưa phân loại".
             </div>
             <div class="modal-actions">
-                <button id="cancelDeleteCategoryBtn" class="modal-btn btn-cancel">
-                    Hủy
-                </button>
+                <button id="cancelDeleteCategoryBtn" class="modal-btn btn-cancel">Hủy</button>
                 <button id="confirmDeleteCategoryBtn" class="modal-btn modal-btn-delete">
                     <span class="btn-icon">🗑️</span> Xóa
                 </button>
@@ -254,8 +250,7 @@
                 </div>
                 <div class="modal-actions">
                     <button id="cancelNoteBtn" class="modal-btn btn-cancel">Hủy</button>
-                    <button id="saveNoteBtn" class="modal-btn btn-save">Lưu ghi
-                        chú</button>
+                    <button id="saveNoteBtn" class="modal-btn btn-save">Lưu ghi chú</button>
                 </div>
             </div>
         </div>
@@ -263,16 +258,20 @@
 
     <div id="previewModal" class="modal-overlay">
         <div class="modal-container preview-modal">
-            <button id="magnifyBtn" class="magnify-btn" style="display: none;">🔍</button>
-            <img id="previewImage" class="preview-image" style="display: none;">
+            <button id="magnifyBtn" class="magnify-btn" title="Xem toàn màn hình" style="display: none;">🔍</button>
+            <img id="previewImage" class="preview-image" alt="Ảnh xem trước" style="display: none;">
             <div id="previewLoading" class="preview-loading">🔍 Đang tải xem trước...</div>
             <div id="previewError" class="preview-error" style="display: none;">Không thể tải xem trước</div>
         </div>
     </div>
 
     <div id="fullscreenPreviewOverlay" class="fullscreen-preview-overlay" style="display: none;">
-        <img id="fullscreenPreviewImage" class="fullscreen-preview-image">
+        <img id="fullscreenPreviewImage" class="fullscreen-preview-image" alt="">
         <button id="fullscreenCloseBtn" class="fullscreen-close-btn">✕</button>
+    </div>
+
+    <div id="statusModal" class="status-modal">
+        <span id="statusMessage"></span>
     </div>
 
     <script src="gdrive.js"></script>

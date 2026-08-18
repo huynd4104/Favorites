@@ -1,52 +1,106 @@
-.fullscreen-preview-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(5px);
+/* ==========================================================================
+   fullscreen.css — INJECTED INTO ARBITRARY HOST PAGES by popup.js
+   (chrome.scripting.insertCSS, declared in web_accessible_resources).
+
+   Must stay fully self-contained: no CSS custom properties from theme.css,
+   and every property the host page could inherit is reset explicitly.
+   ========================================================================== */
+
+#fullscreenPreviewOverlay.fullscreen-preview-overlay {
+    all: initial;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2147483647 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    padding: 24px !important;
+    margin: 0 !important;
+    background: rgba(8, 10, 14, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+    animation: urlfav-fs-fade 180ms cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
-.fullscreen-preview-image {
-    max-width: 90%;
-    max-height: 90%;
-    border-radius: 10px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-    transform-origin: center center;
-    transition: transform 0.2s ease;
-    cursor: grab;
-    user-select: none;
+@keyframes urlfav-fs-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.fullscreen-preview-image.dragging {
-    cursor: grabbing;
+#fullscreenPreviewOverlay .fullscreen-preview-image {
+    display: block !important;
+    max-width: 92% !important;
+    max-height: 92% !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.6) !important;
+    background: #fff !important;
+    cursor: grab !important;
+    transform-origin: center center !important;
+    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1) !important;
+    user-select: none !important;
+    -webkit-user-drag: none !important;
+    object-fit: contain !important;
 }
 
-.fullscreen-close-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(255, 82, 82, 0.3);
-    transition: all 0.3s ease;
+#fullscreenPreviewOverlay .fullscreen-preview-image.dragging {
+    cursor: grabbing !important;
+    transition: none !important;
 }
 
-.fullscreen-close-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 12px rgba(255, 82, 82, 0.4);
+#fullscreenPreviewOverlay .fullscreen-close-btn {
+    position: absolute !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    color: #fff !important;
+    font-family: inherit !important;
+    font-size: 17px !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    text-shadow: none !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+    transition: background-color 180ms ease, transform 180ms ease !important;
+}
+
+#fullscreenPreviewOverlay .fullscreen-close-btn:hover {
+    background: #e5484d !important;
+    border-color: #e5484d !important;
+    transform: rotate(90deg) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #fullscreenPreviewOverlay.fullscreen-preview-overlay,
+    #fullscreenPreviewOverlay .fullscreen-preview-image,
+    #fullscreenPreviewOverlay .fullscreen-close-btn {
+        animation: none !important;
+        transition: none !important;
+    }
 }

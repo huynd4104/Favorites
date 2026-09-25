@@ -36,7 +36,7 @@ async function getAllFavorites() {
         const request = store.getAll();
         request.onsuccess = () => {
             const results = request.result;
-            results.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+            results.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || new Date(b.dateAdded) - new Date(a.dateAdded));
             resolve(results);
         };
         request.onerror = () => reject(request.error);

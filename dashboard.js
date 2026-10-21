@@ -443,14 +443,16 @@ function updatePreviewTransform() {
     }
 }
 
-function showStatus(message, type = 'success') {
+function showStatus(message, type = 'success', duration = 2500) {
     const statusModal = document.getElementById('statusModal');
     const statusEl = document.getElementById('statusMessage');
+    if (!statusModal || !statusEl) return;
     statusEl.textContent = message;
     statusModal.className = `status-modal ${type} show`;
-    setTimeout(() => {
+    if (window._statusTimeout) clearTimeout(window._statusTimeout);
+    window._statusTimeout = setTimeout(() => {
         statusModal.classList.remove('show');
-    }, 2000);
+    }, duration);
 }
 
 // Initialization
@@ -512,13 +514,29 @@ async function init() {
         });
 
         // Google Drive event listeners
+        const extIdEl = document.getElementById('extIdDisplay');
+        if (extIdEl) extIdEl.textContent = chrome.runtime.id;
+
         document.getElementById('loginGDriveBtn').addEventListener('click', async () => {
+            const loginBtn = document.getElementById('loginGDriveBtn');
+            const originalText = loginBtn.textContent;
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Đang kết nối...';
+            showStatus('Đang kết nối tới Google Drive...', 'info', 2000);
+
             try {
-                await gDrive.getAuthToken(true);
-                await updateSyncUI();
+                // Clear any stale cached token before interactive login attempt
+                await gDrive.clearCachedToken();
+                const token = await gDrive.getAuthToken(true);
+                await updateSyncUI(token);
                 showStatus('Kết nối Google Drive thành công!');
             } catch (err) {
-                showStatus('Lỗi kết nối Google Drive', 'error');
+                console.error('[GDrive] Login error:', err);
+                const errMsg = err?.message || (typeof err === 'string' ? err : 'Lỗi kết nối Google Drive');
+                showStatus(errMsg, 'error', 6000);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = originalText;
             }
         });
         document.getElementById('backupGDriveBtn').addEventListener('click', handleGDriveBackup);
@@ -685,6 +703,9 @@ function hideManageCategoriesModal() {
 }
 
 function showDriveSyncModal() {
+    const extIdEl = document.getElementById('extIdDisplay');
+    if (extIdEl) extIdEl.textContent = chrome.runtime.id;
+    updateSyncUI();
     document.getElementById('driveSyncModal').classList.add('show');
 }
 
@@ -888,7 +909,7 @@ async function importFavorites(event) {
     }
 }
 
-async function updateSyncUI() {
+async function updateSyncUI(existingToken = null) {
     const syncStatus = document.getElementById('syncStatus');
     const loginBtn = document.getElementById('loginGDriveBtn');
     const syncButtons = document.getElementById('syncButtons');
@@ -897,11 +918,13 @@ async function updateSyncUI() {
     const gdriveAvatar = document.getElementById('gdriveAvatar');
     const gdriveName = document.getElementById('gdriveName');
     const gdriveEmail = document.getElementById('gdriveEmail');
+    const extIdEl = document.getElementById('extIdDisplay');
 
+    if (extIdEl) extIdEl.textContent = chrome.runtime.id;
     if (!syncStatus || !loginBtn || !syncButtons) return;
 
     try {
-        const token = await gDrive.getAuthToken(false);
+        const token = existingToken || await gDrive.getAuthToken(false);
         if (token) {
             syncStatus.textContent = 'Đã kết nối Google Drive';
             syncStatus.style.color = '#2ecc71';
@@ -1001,11 +1024,22 @@ async function handleGDriveRestore() {
     try {
         const data = await gDrive.loadBackup();
         if (!data) {
-            showStatus('Không tìm thấy bản sao lưu trên Google Drive!', 'error');
+            showStatus('Không tìm thấy bản sao lưu nào trên Google Drive!', 'error', 4000);
             return;
         }
 
-        if (confirm('Dữ liệu hiện tại sẽ bị ghi đè bởi bản sao lưu. Bạn có chắc chắn muốn tiếp tục?')) {
+        const favoritesList = Array.isArray(data) ? data : (data.favorites || []);
+        const categoriesList = Array.isArray(data.customCategories) ? data.customCategories : [];
+        const lastSyncedStr = data.lastSynced ? new Date(data.lastSynced).toLocaleString('vi-VN') : 'Không rõ thời gian';
+
+        if (favoritesList.length === 0) {
+            showStatus('Bản sao lưu trên Google Drive không có liên kết nào!', 'error', 4000);
+            return;
+        }
+
+        const confirmMsg = `Tìm thấy bản sao lưu trên Drive:\n- Số lượng: ${favoritesList.length} liên kết\n- Thời gian sao lưu: ${lastSyncedStr}\n\nDữ liệu hiện tại trên trình duyệt sẽ được thay thế bằng bản sao lưu này. Bạn có chắc chắn muốn khôi phục?`;
+
+        if (confirm(confirmMsg)) {
             const db = await openDB();
             const tx = db.transaction('favorites', 'readwrite');
             const store = tx.objectStore('favorites');
@@ -1016,12 +1050,14 @@ async function handleGDriveRestore() {
                 clearRequest.onerror = () => reject(clearRequest.error);
             });
 
-            for (const fav of data.favorites) {
-                await new Promise((resolve, reject) => {
-                    const putRequest = store.put(fav);
-                    putRequest.onsuccess = resolve;
-                    putRequest.onerror = () => reject(putRequest.error);
-                });
+            for (const fav of favoritesList) {
+                if (fav && fav.id && fav.url) {
+                    await new Promise((resolve, reject) => {
+                        const putRequest = store.put(fav);
+                        putRequest.onsuccess = resolve;
+                        putRequest.onerror = () => reject(putRequest.error);
+                    });
+                }
             }
 
             await new Promise((resolve, reject) => {
@@ -1029,10 +1065,17 @@ async function handleGDriveRestore() {
                 tx.onerror = () => reject(tx.error);
             });
 
-            if (data.customCategories) {
-                await chrome.storage.local.set({ customCategories: JSON.stringify(data.customCategories) });
-                customCategories = data.customCategories;
+            if (categoriesList.length > 0) {
+                await chrome.storage.local.set({ customCategories: JSON.stringify(categoriesList) });
+                customCategories = categoriesList;
             }
+
+            // Reset filters to show all restored items
+            currentCategory = 'all';
+            currentDomain = 'all';
+            searchKeyword = '';
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
 
             favorites = await getAllFavorites();
             updateCategoryOptions();
@@ -1040,11 +1083,13 @@ async function handleGDriveRestore() {
             renderFavorites();
             updateStats();
 
-            showStatus('Đã khôi phục dữ liệu từ Google Drive thành công!');
+            chrome.runtime.sendMessage({ action: 'rescheduleAll' }).catch(() => {});
+
+            showStatus(`Đã khôi phục thành công ${favoritesList.length} liên kết từ Google Drive!`);
         }
     } catch (err) {
         console.error('Restore error:', err);
-        showStatus('Lỗi khi khôi phục: ' + (err.message || 'Không xác định'), 'error');
+        showStatus('Lỗi khi khôi phục: ' + (err.message || 'Không xác định'), 'error', 5000);
     } finally {
         restoreBtn.disabled = false;
         restoreBtn.textContent = originalText;

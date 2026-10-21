@@ -299,6 +299,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } else if (message.id) {
             clearAlarm(getReminderAlarmName(message.id)).catch(logReminderError);
         }
+    } else if (message.action === 'rescheduleAll') {
+        rescheduleAllReminderAlarms().catch(logReminderError);
     }
 });
 

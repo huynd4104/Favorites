@@ -10,6 +10,23 @@ class GDriveClient {
     }
 
     /**
+     * Clear cached OAuth2 token
+     * @param {string} [token=null]
+     */
+    async clearCachedToken(token = null) {
+        if (token) {
+            await new Promise((resolve) => {
+                chrome.identity.removeCachedAuthToken({ token }, resolve);
+            });
+        }
+        if (chrome.identity && chrome.identity.clearAllCachedAuthTokens) {
+            await new Promise((resolve) => {
+                chrome.identity.clearAllCachedAuthTokens(resolve);
+            });
+        }
+    }
+
+    /**
      * Get OAuth2 Access Token
      * @param {boolean} interactive - Whether to show the login prompt if needed
      * @returns {Promise<string>} Token
@@ -18,7 +35,24 @@ class GDriveClient {
         return new Promise((resolve, reject) => {
             chrome.identity.getAuthToken({ interactive }, (token) => {
                 if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
+                    const lastErr = chrome.runtime.lastError;
+                    const rawMsg = lastErr.message || '';
+                    console.error('[GDriveClient] getAuthToken error:', lastErr);
+
+                    let friendlyMsg = rawMsg || 'Lỗi xác thực Google';
+                    if (rawMsg.includes('User is not signed in') || rawMsg.includes('not signed in to Chrome')) {
+                        friendlyMsg = 'Chưa bật Đồng bộ hóa (Sync) trên trình duyệt Chrome. Bạn cần đăng nhập tài khoản Google và Bật tính năng đồng bộ hóa (Turn on sync) trong cài đặt Chrome.';
+                    } else if (rawMsg.includes('bad client id') || rawMsg.includes('OAuth2 client id is invalid') || rawMsg.includes('OAuth client was not found')) {
+                        friendlyMsg = `Client ID hoặc Extension ID chưa khớp trên Google Cloud Console (Extension ID: ${chrome.runtime.id}).`;
+                    } else if (rawMsg.includes('did not approve access') || rawMsg.includes('access_denied')) {
+                        friendlyMsg = 'Bạn đã hủy hoặc từ chối cấp quyền truy cập Google Drive.';
+                    }
+
+                    const error = new Error(friendlyMsg);
+                    error.originalMessage = rawMsg;
+                    reject(error);
+                } else if (!token) {
+                    reject(new Error('Không nhận được token xác thực từ Chrome'));
                 } else {
                     resolve(token);
                 }
@@ -32,11 +66,15 @@ class GDriveClient {
     async logout() {
         const token = await this.getAuthToken(false).catch(() => null);
         if (token) {
-            await new Promise((resolve) => {
-                chrome.identity.removeCachedAuthToken({ token }, resolve);
-            });
+            await this.clearCachedToken(token);
             // Also revoke the token via Google's API
-            await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`);
+            try {
+                await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`);
+            } catch (e) {
+                console.warn('[GDriveClient] Revoke token failed:', e);
+            }
+        } else {
+            await this.clearCachedToken();
         }
     }
 
@@ -54,6 +92,10 @@ class GDriveClient {
                 }
             }
         );
+        if (response.status === 401) {
+            await this.clearCachedToken(token);
+            throw new Error('Phiên đăng nhập Google Drive đã hết hạn. Vui lòng đăng nhập lại.');
+        }
         const result = await response.json();
         if (result.files && result.files.length > 0) {
             return result.files[0].id;
@@ -96,6 +138,11 @@ class GDriveClient {
             body: formData
         });
 
+        if (response.status === 401) {
+            await this.clearCachedToken(token);
+            throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Google Drive.');
+        }
+
         if (!response.ok) {
             const err = await response.json();
             throw new Error(err.error?.message || 'Failed to upload to Google Drive');
@@ -123,11 +170,24 @@ class GDriveClient {
             }
         );
 
-        if (!response.ok) {
-            throw new Error('Failed to download from Google Drive');
+        if (response.status === 401) {
+            await this.clearCachedToken(token);
+            throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Google Drive.');
         }
 
-        return await response.json();
+        if (!response.ok) {
+            throw new Error('Không thể tải tệp sao lưu từ Google Drive.');
+        }
+
+        const text = await response.text();
+        if (!text || !text.trim()) return null;
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('[GDriveClient] Failed to parse backup JSON:', text);
+            throw new Error('Dữ liệu sao lưu trên Google Drive không đúng định dạng JSON.');
+        }
     }
 
     /**
@@ -149,6 +209,11 @@ class GDriveClient {
                 }
             }
         );
+
+        if (response.status === 401) {
+            await this.clearCachedToken(token);
+            throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Google Drive.');
+        }
 
         if (!response.ok) {
             throw new Error('Failed to fetch user profile from Google Drive');
@@ -176,6 +241,11 @@ class GDriveClient {
                 }
             }
         );
+
+        if (response.status === 401) {
+            await this.clearCachedToken(token);
+            throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Google Drive.');
+        }
 
         if (!response.ok) {
             throw new Error('Failed to delete from Google Drive');

@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1V/gBl/50mUtYfL1C5r63Xj0rE0X5zid6s0bGpC0teIz5EPNRVU5Xek1ocx2ivzH/y8DCR30ZvCheb3VyT64CUYbJad5Fk0htp6Fl3a/ShBZO48dPiRx2AgLU7NKloJ10U0qywwoe5WtwzaAz8pQzaeGk6AdXX/h/GPg9AfLfvo8Fh0z4PgXtWrH761+IM+P6N9cgkfLgfOlSFBlnAaQFLH5/bCaNO4z3xQV2CENZIJrVn/4+Ot4GSnTWAByWPCUQb7KfntyxN63UC8Nf/9eZURyJTVUYbWVZx7dug84pbIk5rLsH3T7KLeQ05Y092ZNOn7HjWeFu40ze0OGZK65wwIDAQAB",
   "name": "URL Favorites",
   "version": "1.0",
   "description": "Lưu và quản lý các URL yêu thích",

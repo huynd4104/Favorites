@@ -242,6 +242,11 @@ async function performAutoBackup() {
         }
 
         const favorites = await getAllFavorites();
+        if (favorites.length === 0) {
+            console.log('Auto backup: Skipped because local favorites is empty');
+            return;
+        }
+
         const storageData = await chrome.storage.local.get('customCategories');
         const customCategories = JSON.parse(storageData.customCategories || '[]');
 

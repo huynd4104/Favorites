@@ -182,12 +182,50 @@ class GDriveClient {
         const text = await response.text();
         if (!text || !text.trim()) return null;
 
+        let parsed = null;
         try {
-            return JSON.parse(text);
+            parsed = JSON.parse(text);
         } catch (e) {
             console.error('[GDriveClient] Failed to parse backup JSON:', text);
             throw new Error('Dữ liệu sao lưu trên Google Drive không đúng định dạng JSON.');
         }
+
+        const favs = Array.isArray(parsed) ? parsed : (parsed?.favorites || []);
+        if (favs.length === 0) {
+            // Check if there are older revisions on Drive that might have data
+            try {
+                const revResp = await fetch(
+                    `https://www.googleapis.com/drive/v3/files/${fileId}/revisions?fields=revisions(id,modifiedTime,size)`,
+                    { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+                if (revResp.ok) {
+                    const revData = await revResp.json();
+                    const revisions = revData.revisions || [];
+                    // Look backwards from newest to oldest
+                    for (let i = revisions.length - 2; i >= 0; i--) {
+                        const rev = revisions[i];
+                        const rResp = await fetch(
+                            `https://www.googleapis.com/drive/v3/files/${fileId}/revisions/${rev.id}?alt=media`,
+                            { headers: { 'Authorization': `Bearer ${token}` } }
+                        );
+                        if (rResp.ok) {
+                            const rText = await rResp.text();
+                            const rParsed = JSON.parse(rText);
+                            const rFavs = Array.isArray(rParsed) ? rParsed : (rParsed?.favorites || []);
+                            if (rFavs.length > 0) {
+                                console.log(`[GDriveClient] Recovered ${rFavs.length} favorites from older revision:`, rev.id);
+                                rParsed._recoveredFromRevision = rev.modifiedTime;
+                                return rParsed;
+                            }
+                        }
+                    }
+                }
+            } catch (revErr) {
+                console.warn('[GDriveClient] Revision check warning:', revErr);
+            }
+        }
+
+        return parsed;
     }
 
     /**

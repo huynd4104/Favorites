@@ -1235,6 +1235,12 @@ async function handleGDriveBackup() {
 
     try {
         const favorites = await getAllFavorites();
+        if (favorites.length === 0) {
+            const proceed = confirm('CẢNH BÁO: Danh sách hiện tại trên máy đang không có liên kết nào (0 link).\n\nNếu sao lưu, dữ liệu cũ trên Google Drive sẽ bị thay thế bằng danh sách trống. Bạn có chắc chắn muốn tiếp tục không?');
+            if (!proceed) {
+                return;
+            }
+        }
         const storageData = await chrome.storage.local.get('customCategories');
         const customCategories = JSON.parse(storageData.customCategories || '[]');
         const dataToBackup = {
